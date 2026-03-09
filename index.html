@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v7.1 | Engine</title>
+    <title>OP245-C Sinais v7.2 | Engine</title>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -400,7 +400,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v7.1 ENGINE</span>
+        <span class="nav-version">SINAIS v7.2 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -627,7 +627,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v7.1 — ENGINE CORE
+//  OP245-C v7.2 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -1029,29 +1029,40 @@ function startSimulationEngine() {
 }
 
 // ── DETECÇÃO OTC ───────────────────────────────────────────
-// Pares Forex/Commodity ficam OTC no fim de semana (Sex 18h BRT → Dom 22h BRT)
-// Criptos são 24/7 — nunca entram em OTC
-const OTC_PAIRS = new Set(['EUR/USD','GBP/USD','AUD/CAD','EUR/JPY','EUR/CAD','XAUUSD']);
+// Horários em BRT (UTC-3):
+//   Forex  (EUR/USD, GBP/USD, AUD/CAD, EUR/JPY, EUR/CAD): Sex 18h → Dom 22h
+//   XAU/USD (Commodities):                                 Sex 17h → Dom 22h
+//   Criptos (BTC, ETH, SOL, XRP):                         24/7 — nunca OTC
 const CRYPTO_PAIRS = new Set(['BTC/USD','ETH/USD','SOL/USD','XRP/USD']);
+
+// Retorna hora de fechamento BRT na sexta para cada par
+const OTC_CLOSE_HOUR = {
+    'EUR/USD': 18, 'GBP/USD': 18, 'AUD/CAD': 18,
+    'EUR/JPY': 18, 'EUR/CAD': 18,
+    'XAUUSD':  17, // fecha 1h antes
+};
+
+function getBRTTime() {
+    const now = new Date();
+    const brtOffset = -3 * 60;
+    return new Date(now.getTime() + (now.getTimezoneOffset() + brtOffset) * 60000);
+}
 
 function isMarketOTC(pair) {
     if (CRYPTO_PAIRS.has(pair)) return false; // cripto nunca é OTC
-    if (!OTC_PAIRS.has(pair)) return false;
+    const closeHour = OTC_CLOSE_HOUR[pair];
+    if (closeHour === undefined) return false; // par desconhecido — não bloqueia
 
-    // Verifica se é fim de semana no horário de Brasília (UTC-3)
-    const now = new Date();
-    const brtOffset = -3 * 60; // UTC-3
-    const brtTime = new Date(now.getTime() + (now.getTimezoneOffset() + brtOffset) * 60000);
-    const day = brtTime.getDay(); // 0=Dom, 1=Seg ... 5=Sex, 6=Sáb
-    const hour = brtTime.getHours();
-    const min = brtTime.getMinutes();
-    const timeInMin = hour * 60 + min;
+    const brt = getBRTTime();
+    const day        = brt.getDay();   // 0=Dom 1=Seg … 5=Sex 6=Sáb
+    const timeInMin  = brt.getHours() * 60 + brt.getMinutes();
+    const closeInMin = closeHour * 60;
 
-    // Sexta após 18h BRT → OTC
-    if (day === 5 && timeInMin >= 18 * 60) return true;
+    // Sexta após horário de fechamento do par → OTC
+    if (day === 5 && timeInMin >= closeInMin) return true;
     // Sábado inteiro → OTC
     if (day === 6) return true;
-    // Domingo até 22h BRT → OTC
+    // Domingo antes das 22h BRT → OTC
     if (day === 0 && timeInMin < 22 * 60) return true;
 
     return false;
@@ -1062,11 +1073,21 @@ function updateOTCStatusBar() {
     const txt = document.getElementById('otc-status-text');
     if (!bar || !txt) return;
 
-    const otcPairsActive = Array.from(OTC_PAIRS).filter(p => isMarketOTC(p));
-    if (otcPairsActive.length > 0 && STATE.settings.ignoreOTC) {
+    const otcNow = Object.keys(OTC_CLOSE_HOUR).filter(p => isMarketOTC(p));
+
+    if (otcNow.length > 0 && STATE.settings.ignoreOTC) {
         bar.style.display = 'block';
-        txt.innerHTML = `Ignorando: <span style="color:var(--yellow)">${otcPairsActive.join(', ')}</span><br>
-            <span style="color:var(--text-dim)">Sinais ativos apenas para criptos.</span>`;
+        // Monta lista com horário de reabertura de cada par
+        const lista = otcNow.map(p => {
+            const fechaH = OTC_CLOSE_HOUR[p];
+            return `<span style="color:var(--yellow)">${p}</span> <span style="color:var(--text-dim)">(fecha Sex ${fechaH}h)</span>`;
+        }).join('<br>');
+        txt.innerHTML = `${lista}<br><span style="color:var(--text-dim); margin-top:4px; display:block;">↩ Reabre Dom 22h BRT</span>`;
+    } else if (otcNow.length > 0 && !STATE.settings.ignoreOTC) {
+        // Avisa que há pares em OTC mas o filtro está desativado
+        bar.style.display = 'block';
+        document.querySelector('#otc-status-bar div:first-child').textContent = '⚠ PARES EM OTC (filtro desativado)';
+        txt.innerHTML = `<span style="color:var(--text-dim)">Ative "Ignorar OTC" para bloquear sinais desses pares.</span>`;
     } else {
         bar.style.display = 'none';
     }
@@ -1579,7 +1600,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v7.1</span>
+                <span>OP245-C v7.2</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -1613,7 +1634,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v7.1 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v7.2 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -1666,7 +1687,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v7.1 Engine_`;
+_OP245-C v7.2 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -1731,7 +1752,7 @@ function init() {
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v7.1] Engine iniciada.');
+    console.log('[OP245-C v7.2] Engine iniciada.');
 }
 
 init();
