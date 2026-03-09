@@ -987,77 +987,118 @@ function startSimulationEngine() {
 
 /**
  * processTick — ponto central de análise, compartilhado entre live e sim
+ * Quando múltiplos TFs estão selecionados, avalia cada TF com seus próprios parâmetros
  */
 function processTick(pair, price, source) {
     if (STATE.isPaused) return;
-    const p = STATE.params;
     const s = STATE.settings;
     const hist = STATE.marketData[pair];
-    if (!hist || hist.length < p.rsiPeriod + 1) return;
+    if (!hist || hist.length < 10) return;
 
-    // ── Calcula todos os indicadores ──
-    const stoch = calculateStochRSI(hist, p.stochRsiPeriod, p.stochKPeriod);
-    const macd  = calculateMACD(hist, p.macdFast, p.macdSlow, p.macdSignal);
-    const mm200 = calculateMM200(hist);
+    const tfs = Array.from(STATE.selectedTFs);
+    if (tfs.length === 0) return;
 
-    // Atualiza displays do sidebar para o ativo principal
-    if (pair === Array.from(STATE.selectedAssets)[0]) {
-        if (macd)  updateMacdDisplay(macd);
-        if (stoch) updateStochDisplay(pair, stoch);
-        if (mm200) updateMM200Display(pair, mm200, price);
-    }
+    // Quando todos os TFs estão selecionados ou múltiplos, avalia cada um com seu preset
+    // Quando só um TF, usa os parâmetros atuais do STATE (que o usuário pode ter ajustado)
+    const useIndividualPresets = tfs.length > 1;
 
-    // ── GATILHO PRINCIPAL: Stochastic RSI ──
-    // (mais preciso que RSI puro — menos ruído)
-    let signalType = null;
-    if (stoch) {
-        if (stoch.k >= p.stochUp) signalType = 'VENDA';
-        else if (stoch.k <= p.stochDw) signalType = 'COMPRA';
-    } else {
-        // Fallback para RSI simples enquanto Stoch não tem dados suficientes
-        const rsi = calculateRSI(hist, p.rsiPeriod);
-        if (rsi >= p.rsiUp) signalType = 'VENDA';
-        else if (rsi <= p.rsiDw) signalType = 'COMPRA';
-    }
-    if (!signalType) return;
+    tfs.forEach(tf => {
+        // Define parâmetros: preset individual por TF (se múltiplos) ou STATE atual (se único)
+        let p;
+        if (useIndividualPresets) {
+            const pr = TF_PRESETS[tf] || TF_PRESETS['M5'];
+            p = {
+                rsiPeriod:      pr[0], rsiUp: pr[1], rsiDw: pr[2],
+                macdFast:       pr[3], macdSlow: pr[4], macdSignal: pr[5],
+                stochRsiPeriod: pr[6], stochKPeriod: pr[7],
+                stochUp:        pr[8], stochDw: pr[9],
+            };
+        } else {
+            p = STATE.params; // usa configuração atual do usuário
+        }
 
-    // ── FILTRO 1: MM200 — só opera a favor da tendência macro ──
-    if (s.useMM200 && mm200) {
-        if (signalType === 'COMPRA' && mm200.trend === 'below') return; // preço abaixo da MM200 = não compra
-        if (signalType === 'VENDA'  && mm200.trend === 'above') return; // preço acima da MM200 = não vende
-    }
+        if (hist.length < p.rsiPeriod + 1) return;
 
-    // ── FILTRO 2: MACD — confirma momentum ──
-    if (s.useMacd && macd) {
-        if (signalType === 'COMPRA' && macd.trend !== 'bullish') return;
-        if (signalType === 'VENDA'  && macd.trend !== 'bearish') return;
-    }
+        // Calcula indicadores com parâmetros do TF
+        const stoch = calculateStochRSI(hist, p.stochRsiPeriod, p.stochKPeriod);
+        const macd  = calculateMACD(hist, p.macdFast, p.macdSlow, p.macdSignal);
+        const mm200 = calculateMM200(hist);
 
-    const stochVal = stoch ? stoch.k : calculateRSI(hist, p.rsiPeriod);
-    evaluateSignalTrigger(pair, signalType, price, stochVal, macd, mm200, source);
+        // Atualiza sidebar só para o ativo e TF principal
+        if (pair === Array.from(STATE.selectedAssets)[0] && tf === tfs[0]) {
+            if (macd)  updateMacdDisplay(macd);
+            if (stoch) updateStochDisplay(pair, stoch);
+            if (mm200) updateMM200Display(pair, mm200, price);
+        }
+
+        // Gatilho: Stochastic RSI
+        let signalType = null;
+        if (stoch) {
+            if (stoch.k >= p.stochUp) signalType = 'VENDA';
+            else if (stoch.k <= p.stochDw) signalType = 'COMPRA';
+        } else {
+            const rsi = calculateRSI(hist, p.rsiPeriod);
+            if (rsi >= p.rsiUp) signalType = 'VENDA';
+            else if (rsi <= p.rsiDw) signalType = 'COMPRA';
+        }
+        if (!signalType) return;
+
+        // Filtro MM200
+        if (s.useMM200 && mm200) {
+            if (signalType === 'COMPRA' && mm200.trend === 'below') return;
+            if (signalType === 'VENDA'  && mm200.trend === 'above') return;
+        }
+
+        // Filtro MACD
+        if (s.useMacd && macd) {
+            if (signalType === 'COMPRA' && macd.trend !== 'bullish') return;
+            if (signalType === 'VENDA'  && macd.trend !== 'bearish') return;
+        }
+
+        const stochVal = stoch ? stoch.k : calculateRSI(hist, p.rsiPeriod);
+
+        // Dispara sinal apenas para este TF (não chama evaluateSignalTrigger que iteraria de novo)
+        const now = Date.now();
+        STATE.lockedSignals.forEach((ts, key) => {
+            if (now - ts > STATE.LOCK_TTL_MS) STATE.lockedSignals.delete(key);
+        });
+
+        const velas = Array.from(STATE.selectedVelas);
+        if (velas.length === 0) return;
+        const velaType   = velas[Math.floor(Math.random() * velas.length)];
+        const candleTime = getCandleTime(tf, velaType);
+        const signalKey  = `${pair}_${tf}_${signalType}_${candleTime}`;
+        if (STATE.lockedSignals.has(signalKey)) return;
+        STATE.lockedSignals.set(signalKey, now);
+
+        dispatchVisualSignal(pair, signalType, tf, velaType, candleTime, price.toFixed(5), stochVal, macd, mm200, source);
+    });
 }
 
 // ── 5. LÓGICA DE SINAL COM LOCK FIFO ──────────────────────
 
 function evaluateSignalTrigger(pair, type, price, stochVal, macd, mm200, source) {
     const now = Date.now();
+    // Limpeza FIFO de locks expirados
     STATE.lockedSignals.forEach((ts, key) => {
         if (now - ts > STATE.LOCK_TTL_MS) STATE.lockedSignals.delete(key);
     });
 
-    const tfs = Array.from(STATE.selectedTFs);
+    const tfs   = Array.from(STATE.selectedTFs);
     const velas = Array.from(STATE.selectedVelas);
     if (tfs.length === 0 || velas.length === 0) return;
 
-    const tf = source === 'real' ? tfs[0] : tfs[Math.floor(Math.random() * tfs.length)];
-    const velaType = velas[Math.floor(Math.random() * velas.length)];
-    const candleTime = getCandleTime(tf, velaType);
+    // Dispara um sinal para CADA TF selecionado
+    tfs.forEach(tf => {
+        const velaType   = velas[Math.floor(Math.random() * velas.length)];
+        const candleTime = getCandleTime(tf, velaType);
 
-    const signalKey = `${pair}_${tf}_${type}_${candleTime}`;
-    if (STATE.lockedSignals.has(signalKey)) return;
-    STATE.lockedSignals.set(signalKey, now);
+        const signalKey = `${pair}_${tf}_${type}_${candleTime}`;
+        if (STATE.lockedSignals.has(signalKey)) return;
+        STATE.lockedSignals.set(signalKey, now);
 
-    dispatchVisualSignal(pair, type, tf, velaType, candleTime, price.toFixed(5), stochVal, macd, mm200, source);
+        dispatchVisualSignal(pair, type, tf, velaType, candleTime, price.toFixed(5), stochVal, macd, mm200, source);
+    });
 }
 
 function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source) {
@@ -1321,32 +1362,51 @@ function updateStatsUI() {
         s.total > 0 ? `${((s.conf / s.total) * 100).toFixed(1)}%` : '0.0%';
 }
 
-function setValues(p, up, dw, mf, ms, msig) {
+function setValues(p, up, dw, mf, ms, msig, srsiP, srsiK, srsiUp, srsiDw) {
     const set = (id, valId, v) => {
-        document.getElementById(id).value = v;
-        document.getElementById(valId).textContent = v;
+        const el = document.getElementById(id);
+        const valEl = document.getElementById(valId);
+        if (el) el.value = v;
+        if (valEl) valEl.textContent = v;
     };
-    set('cfg-rsi-p','val-rsi-p',p); STATE.params.rsiPeriod = p;
-    set('cfg-rsi-up','val-rsi-up',up); STATE.params.rsiUp = up;
-    set('cfg-rsi-dw','val-rsi-dw',dw); STATE.params.rsiDw = dw;
-    set('cfg-macd-f','val-macd-f',mf); STATE.params.macdFast = mf;
-    set('cfg-macd-s','val-macd-s',ms); STATE.params.macdSlow = ms;
+    set('cfg-rsi-p','val-rsi-p',p);       STATE.params.rsiPeriod  = p;
+    set('cfg-rsi-up','val-rsi-up',up);    STATE.params.rsiUp      = up;
+    set('cfg-rsi-dw','val-rsi-dw',dw);    STATE.params.rsiDw      = dw;
+    set('cfg-macd-f','val-macd-f',mf);    STATE.params.macdFast   = mf;
+    set('cfg-macd-s','val-macd-s',ms);    STATE.params.macdSlow   = ms;
     set('cfg-macd-sig','val-macd-sig',msig); STATE.params.macdSignal = msig;
+    // Stoch RSI
+    set('cfg-stoch-rsi','val-stoch-rsi', srsiP);  STATE.params.stochRsiPeriod = srsiP;
+    set('cfg-stoch-k',  'val-stoch-k',   srsiK);  STATE.params.stochKPeriod   = srsiK;
+    set('cfg-stoch-up', 'val-stoch-up',  srsiUp);  STATE.params.stochUp        = srsiUp;
+    set('cfg-stoch-dw', 'val-stoch-dw',  srsiDw);  STATE.params.stochDw        = srsiDw;
 }
+
+// Presets por TF: (rsiP, rsiUp, rsiDw, macdF, macdS, macdSig, stochRsiP, stochKP, stochUp, stochDw)
+const TF_PRESETS = {
+    'M1':  [7,  85, 15, 7,  13, 9,  7,  14, 85, 15],
+    'M5':  [14, 80, 20, 14, 26, 9,  14, 14, 80, 20],
+    'M10': [21, 80, 20, 21, 34, 9,  21, 14, 75, 25],
+    'M15': [21, 80, 20, 21, 34, 9,  21, 14, 75, 25],
+    'ALL': [21, 80, 20, 21, 34, 9,  21, 14, 80, 20],
+};
 
 function updatePresets() {
     const hasTodas = STATE.selectedTFs.size === 4;
     const sliders = document.querySelectorAll('.ind-slider');
     const lockMsg = document.getElementById('ind-lock-msg');
+
     if (hasTodas) {
-        sliders.forEach(s => s.disabled = true); lockMsg.style.display = 'inline';
-        setValues(21, 80, 20, 21, 34, 9);
+        sliders.forEach(s => s.disabled = true);
+        lockMsg.style.display = 'inline';
+        setValues(...TF_PRESETS['ALL']);
     } else {
-        sliders.forEach(s => s.disabled = false); lockMsg.style.display = 'none';
+        sliders.forEach(s => s.disabled = false);
+        lockMsg.style.display = 'none';
         if (STATE.selectedTFs.size === 1) {
-            if (STATE.selectedTFs.has('M1'))                     setValues(7,  85, 15, 7,  13, 9);
-            else if (STATE.selectedTFs.has('M5'))                setValues(14, 80, 20, 14, 26, 9);
-            else if (STATE.selectedTFs.has('M10') || STATE.selectedTFs.has('M15')) setValues(21, 80, 20, 21, 34, 9);
+            const tf = Array.from(STATE.selectedTFs)[0];
+            const preset = TF_PRESETS[tf] || TF_PRESETS['M5'];
+            setValues(...preset);
         }
     }
     updateStatHeader();
