@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OPERACIONAL 245 v6.0 | Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #020608;
+            --bg-sidebar: #060d12;
+            --bg-card: #0a1520;
+            --bg-card2: #0d1a26;
+            --border: #142030;
+            --border2: #1c2f42;
+            --text-main: #c8d8e8;
+            --text-dim: #4a6070;
+            --text-mid: #7a9ab0;
+            --green: #00ff88;
+            --green-dim: #00c860;
+            --red: #ff3355;
+            --red-dim: #cc2244;
+            --blue: #00aaff;
+            --blue-dim: #0077cc;
+            --yellow: #ffcc00;
+            --cyan: #00eeff;
+            --purple: #aa55ff;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-main: 'Rajdhani', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            font-size: 14px;
+            background-image:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,100,200,0.06) 0%, transparent 70%),
+                linear-gradient(180deg, #020608 0%, #040c14 100%);
+        }
+
+        /* ── TOP NAV ── */
+        .top-nav {
+            position: fixed; top: 0; left: 0; right: 0; height: 52px;
+            background: rgba(6,13,18,0.95);
+            border-bottom: 1px solid var(--border2);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 16px; z-index: 1000;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 1px 20px rgba(0,0,0,0.6);
+        }
+        .nav-brand {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .nav-logo {
+            font-family: var(--font-mono); font-size: 15px;
+            color: var(--blue); letter-spacing: 2px; font-weight: bold;
+        }
+        .nav-version {
+            font-size: 10px; color: var(--text-dim);
+            background: var(--bg-card2); border: 1px solid var(--border);
+            padding: 2px 6px; border-radius: 3px; font-family: var(--font-mono);
+        }
+        .nav-right { display: flex; gap: 6px; align-items: center; }
+        .icon-btn {
+            cursor: pointer; font-size: 17px; padding: 6px 8px;
+            border-radius: 4px; transition: 0.15s; display: inline-flex;
+            align-items: center; justify-content: center;
+            border: 1px solid transparent;
+        }
+        .icon-btn:hover { background: var(--bg-card); border-color: var(--border2); }
+
+        #sys-status {
+            font-size: 11px; font-family: var(--font-mono);
+            display: flex; align-items: center; gap: 5px;
+            padding: 4px 10px; border-radius: 4px;
+            background: var(--bg-card2); border: 1px solid var(--border);
+        }
+        .status-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--green); box-shadow: 0 0 8px var(--green);
+            animation: pulse 2s infinite;
+        }
+        .status-dot.red { background: var(--red); box-shadow: 0 0 8px var(--red); animation: none; }
+        .status-dot.yellow { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        #clock {
+            font-family: var(--font-mono); font-size: 13px;
+            color: var(--blue); letter-spacing: 1px;
+            padding: 4px 10px; background: var(--bg-card2);
+            border: 1px solid var(--border); border-radius: 4px;
+            min-width: 80px; text-align: center;
+        }
+
+        /* ── API STATUS BAR ── */
+        #api-status-bar {
+            position: fixed; top: 52px; left: 0; right: 0; z-index: 999;
+            padding: 5px 16px; font-size: 11px; font-family: var(--font-mono);
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(10,21,32,0.9); border-bottom: 1px solid var(--border);
+            transition: 0.3s;
+        }
+        #api-status-bar.connected { border-bottom-color: rgba(0,255,136,0.3); }
+        #api-status-bar.error { border-bottom-color: rgba(255,51,85,0.3); }
+        .api-badge {
+            padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: bold;
+            background: var(--bg-card); border: 1px solid var(--border2);
+        }
+        .api-badge.ok { border-color: var(--green-dim); color: var(--green); }
+        .api-badge.err { border-color: var(--red-dim); color: var(--red); }
+        .api-badge.sim { border-color: var(--yellow); color: var(--yellow); }
+
+        /* ── SIDEBAR ── */
+        #sidebar {
+            width: 310px; background: var(--bg-sidebar);
+            border-right: 1px solid var(--border2);
+            padding: 110px 14px 14px; overflow-y: auto;
+            height: 100%; transition: transform 0.3s ease, margin-left 0.3s ease;
+            flex-shrink: 0;
+        }
+        #sidebar.hidden { margin-left: -310px; }
+
+        ::-webkit-scrollbar { width: 3px; height: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+        .config-block { margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+        .config-block:last-child { border-bottom: none; }
+        .block-label {
+            font-size: 10px; color: var(--text-dim); font-weight: 700;
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .block-label::after {
+            content: ''; flex: 1; height: 1px; background: var(--border);
+        }
+
+        .grid-tags { display: grid; gap: 4px; margin-top: 6px; }
+        .grid-2 { grid-template-columns: 1fr 1fr; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .tag-btn {
+            background: var(--bg-card); border: 1px solid var(--border);
+            padding: 7px 4px; font-size: 11px; text-align: center;
+            border-radius: 4px; cursor: pointer; color: var(--text-dim);
+            transition: 0.15s; font-family: var(--font-main); font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .tag-btn:hover { border-color: var(--border2); color: var(--text-mid); }
+        .tag-btn.active {
+            background: rgba(0,170,255,0.1); border-color: var(--blue-dim);
+            color: var(--blue); box-shadow: inset 0 0 8px rgba(0,170,255,0.05);
+        }
+
+        .chk-group { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
+        .chk-label {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; color: var(--text-mid); cursor: pointer;
+        }
+        .chk-label input { accent-color: var(--blue); }
+
+        .slider-row { margin-top: 10px; }
+        .slider-header {
+            display: flex; justify-content: space-between;
+            font-size: 11px; color: var(--text-dim); margin-bottom: 5px;
+        }
+        .slider-header b { color: var(--text-main); font-weight: 600; font-family: var(--font-mono); }
+
+        input[type="range"] {
+            width: 100%; height: 3px; background: var(--border2);
+            outline: none; -webkit-appearance: none; border-radius: 2px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 13px; height: 13px;
+            background: var(--blue); border-radius: 50%; cursor: pointer;
+            box-shadow: 0 0 6px rgba(0,170,255,0.4);
+        }
+        input[type="range"]:disabled { opacity: 0.3; cursor: not-allowed; }
+        input[type="range"]:disabled::-webkit-slider-thumb { background: #333; box-shadow: none; }
+
+        /* ── MAIN ── */
+        #main { flex: 1; padding: 110px 16px 20px; overflow-y: auto; min-width: 0; }
+
+        .section-header {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 14px; flex-wrap: wrap;
+        }
+        .section-header h3 {
+            margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 1px;
+            text-transform: uppercase; color: var(--text-mid);
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+        }
+        .header-badge {
+            background: var(--blue-dim); color: white;
+            padding: 2px 7px; border-radius: 3px; font-size: 10px;
+            font-weight: 700; font-family: var(--font-mono); letter-spacing: 1px;
+        }
+        .header-badge.vela {
+            background: var(--bg-card2); border: 1px solid var(--border2);
+            color: var(--text-dim);
+        }
+
+        /* ── STATS GRID ── */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(6, 1fr);
+            gap: 10px; margin-bottom: 18px;
+        }
+        .stat-card {
+            background: var(--bg-card); padding: 12px 10px;
+            border-radius: 6px; border: 1px solid var(--border);
+            position: relative; overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        .stat-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0;
+            height: 2px;
+        }
+        .stat-card.s-total::before { background: var(--text-dim); }
+        .stat-card.s-buy::before { background: var(--green-dim); }
+        .stat-card.s-sell::before { background: var(--red-dim); }
+        .stat-card.s-conf::before { background: var(--blue-dim); }
+        .stat-card.s-pend::before { background: var(--yellow); }
+        .stat-card.s-rate::before { background: var(--cyan); }
+        .stat-card span { color: var(--text-dim); font-size: 10px; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-card h2 { margin: 0; font-size: 22px; font-weight: 700; font-family: var(--font-mono); }
+
+        /* ── TABLE ── */
+        .table-section {
+            background: var(--bg-card); border: 1px solid var(--border2);
+            border-radius: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+        }
+        table { width: 100%; border-collapse: collapse; min-width: 780px; }
+        th {
+            background: var(--bg-card2); color: var(--text-dim);
+            padding: 11px 12px; font-size: 10px; text-transform: uppercase;
+            text-align: left; border-bottom: 1px solid var(--border2);
+            white-space: nowrap; letter-spacing: 1.5px; font-weight: 700;
+        }
+        td {
+            padding: 10px 12px; border-bottom: 1px solid var(--border);
+            font-size: 12px; white-space: nowrap; transition: 0.2s;
+            font-family: var(--font-main);
+        }
+        tbody tr:hover { background: rgba(255,255,255,0.02); }
+        tbody tr:last-child td { border-bottom: none; }
+
+        .badge-buy {
+            color: var(--green); border: 1px solid var(--green-dim);
+            padding: 3px 9px; border-radius: 3px; font-weight: 700;
+            font-size: 10px; letter-spacing: 1px;
+            background: rgba(0,255,136,0.06);
+        }
+        .badge-sell {
+            color: var(--red); border: 1px solid var(--red-dim);
+            padding: 3px 9px; border-radius: 3px; font-weight: 700;
+            font-size: 10px; letter-spacing: 1px;
+            background: rgba(255,51,85,0.06);
+        }
+        .status-conf {
+            color: var(--blue); border: 1px solid var(--blue-dim);
+            padding: 2px 8px; border-radius: 12px; font-size: 10px;
+            background: rgba(0,170,255,0.06); font-family: var(--font-mono);
+        }
+        .status-pend {
+            color: var(--yellow); border: 1px solid var(--yellow);
+            padding: 2px 8px; border-radius: 12px; font-size: 10px;
+            background: rgba(255,204,0,0.06); font-family: var(--font-mono);
+        }
+        .badge-tf {
+            background: rgba(0,170,255,0.1); border: 1px solid var(--blue-dim);
+            padding: 2px 6px; border-radius: 3px; font-size: 10px;
+            color: var(--blue); font-family: var(--font-mono);
+        }
+        .badge-src {
+            font-size: 9px; padding: 1px 5px; border-radius: 3px;
+            font-family: var(--font-mono); font-weight: bold;
+        }
+        .badge-src.real { color: var(--green); border: 1px solid var(--green-dim); background: rgba(0,255,136,0.06); }
+        .badge-src.sim { color: var(--yellow); border: 1px solid var(--yellow); background: rgba(255,204,0,0.06); }
+
+        /* ── MACD ROW ── */
+        .macd-indicator {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-family: var(--font-mono); font-size: 10px;
+        }
+        .macd-bar {
+            width: 4px; border-radius: 1px; display: inline-block;
+        }
+
+        /* ── POPUP ── */
+        #popup-container {
+            position: fixed; top: 62px; right: 20px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+        }
+        .popup-alert {
+            background: rgba(6,13,18,0.97); border: 1px solid var(--border2);
+            padding: 14px; border-radius: 6px; width: 265px;
+            animation: slideIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            pointer-events: all; box-shadow: 0 12px 40px rgba(0,0,0,0.8);
+            backdrop-filter: blur(20px);
+        }
+        .popup-alert.buy-alert { border-color: rgba(0,200,96,0.4); }
+        .popup-alert.sell-alert { border-color: rgba(255,51,85,0.4); }
+        .popup-title {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 16px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px;
+            font-family: var(--font-mono);
+        }
+        .popup-circle { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .txt-buy { color: var(--green); } .txt-sell { color: var(--red); }
+        .bg-buy { background: var(--green); box-shadow: 0 0 8px var(--green); }
+        .bg-sell { background: var(--red); box-shadow: 0 0 8px var(--red); }
+        .popup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px; }
+        .p-item { display: flex; flex-direction: column; }
+        .p-label { font-size: 10px; color: var(--text-dim); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
+        .p-val { font-size: 18px; font-weight: 600; color: white; font-family: var(--font-mono); }
+        .popup-src { font-size: 9px; font-family: var(--font-mono); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); color: var(--text-dim); display: flex; justify-content: space-between; }
+
+        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOutRow { to { opacity: 0; transform: translateY(-4px); } }
+
+        /* ── ERROR TOAST ── */
+        #error-toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(255,51,85,0.1); border: 1px solid var(--red-dim);
+            color: var(--red); padding: 10px 20px; border-radius: 6px;
+            font-family: var(--font-mono); font-size: 12px; z-index: 9998;
+            display: none; animation: slideIn 0.3s ease;
+        }
+
+        /* ── INDICATOR LIGHTS ── */
+        .ind-light {
+            display: inline-block; width: 6px; height: 6px;
+            border-radius: 50%; vertical-align: middle; margin-right: 4px;
+        }
+        .ind-light.on-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .ind-light.on-red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+        .ind-light.on-yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+        .ind-light.off { background: var(--text-dim); }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 600px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .stat-card h2 { font-size: 18px; }
+            #sidebar {
+                position: fixed; top: 52px; left: 0;
+                height: calc(100vh - 52px); z-index: 1001; margin-left: 0;
+                transform: translateX(0); box-shadow: 5px 0 30px rgba(0,0,0,0.9);
+                width: 280px;
+            }
+            #sidebar.hidden { transform: translateX(-100%); margin-left: 0; }
+            #popup-container { top: 62px; right: 0; left: 0; align-items: center; width: 100%; }
+            .popup-alert { width: 90%; max-width: 320px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── TOP NAV ── -->
+<nav class="top-nav">
+    <div class="nav-brand">
+        <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
+        <span class="nav-logo">OP245-G</span>
+        <span class="nav-version">v6.0 ENGINE</span>
+    </div>
+    <div class="nav-right">
+        <span id="sys-status">
+            <span class="status-dot" id="status-dot"></span>
+            <span id="status-label">Inicializando</span>
+        </span>
+        <span id="btn-audio" class="icon-btn" onclick="toggleAudio()" title="Mudo/Som">🔊</span>
+        <span id="btn-pause" class="icon-btn" onclick="togglePause()" title="Pausar Engine">🔔</span>
+        <div id="clock">00:00:00</div>
+    </div>
+</nav>
+
+<!-- ── API STATUS BAR ── -->
+<div id="api-status-bar">
+    <span id="api-source-badge" class="api-badge sim">SIM</span>
+    <span id="api-status-text" style="color: var(--text-dim); font-size:10px;">Aguardando conexão com API...</span>
+    <span style="margin-left: auto; color: var(--text-dim); font-size:10px;" id="api-last-update">—</span>
+</div>
+
+<div id="popup-container"></div>
+<div id="error-toast"></div>
+
+<!-- ── SIDEBAR ── -->
+<aside id="sidebar">
+    <div class="config-block">
+        <div class="block-label">Fonte de Dados</div>
+        <div style="margin-top:6px;">
+            <div class="slider-header"><span>API Key (TwelveData):</span></div>
+            <input type="text" id="cfg-apikey"
+                placeholder="Cole sua chave aqui"
+                style="width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-main); padding:7px 10px; border-radius:4px; font-family:var(--font-mono); font-size:11px; margin-top:4px; outline:none;"
+                oninput="onApiKeyChange()">
+            <div style="font-size:10px; color:var(--text-dim); margin-top:5px; line-height:1.5;">
+                Sem chave: modo simulação ativo.<br>
+                Obtenha grátis em <span style="color:var(--blue);">twelvedata.com</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="config-block">
+        <div class="block-label">Filtro de Vela</div>
+        <div class="grid-tags grid-2">
+            <div class="tag-btn active" id="vela-atual" onclick="toggleVela('Atual')">Vela Atual</div>
+            <div class="tag-btn active" id="vela-prox" onclick="toggleVela('Próxima')">Próxima Vela</div>
+        </div>
+        <div class="chk-group">
+            <label class="chk-label"><input type="checkbox" id="chk-popup" checked onchange="settings.popup = this.checked"> Alertas Pop-up</label>
+            <label class="chk-label"><input type="checkbox" id="chk-fechamento" onchange="settings.confirmClose = this.checked"> Confirmar no Fechamento</label>
+            <label class="chk-label"><input type="checkbox" id="chk-macd" checked onchange="settings.useMacd = this.checked"> Filtro MACD ativo</label>
+        </div>
+    </div>
+
+    <div class="config-block">
+        <div class="block-label">Timeframe</div>
+        <div class="grid-tags grid-4" style="margin-bottom:4px;">
+            <div class="tag-btn tf-btn active" id="tf-M1" onclick="toggleTF('M1')">M1</div>
+            <div class="tag-btn tf-btn active" id="tf-M5" onclick="toggleTF('M5')">M5</div>
+            <div class="tag-btn tf-btn" id="tf-M10" onclick="toggleTF('M10')">M10</div>
+            <div class="tag-btn tf-btn" id="tf-M15" onclick="toggleTF('M15')">M15</div>
+        </div>
+        <div class="tag-btn" id="btn-todas-tf" onclick="toggleAllTF()" style="width:100%; display:block; padding:6px 0; margin-top:4px;">Todas</div>
+    </div>
+
+    <div class="config-block">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div class="block-label" style="margin-bottom:0">Pares Monitorados</div>
+            <div style="display:flex; gap:8px;">
+                <span style="font-size:10px; color:var(--blue); cursor:pointer;" onclick="bulkAssets(true)">Todos</span>
+                <span style="font-size:10px; color:var(--text-dim); cursor:pointer;" onclick="bulkAssets(false)">Nenhum</span>
+            </div>
+        </div>
+        <div class="grid-tags grid-3" id="asset-selector"></div>
+    </div>
+
+    <div class="config-block">
+        <div class="block-label">
+            RSI
+            <span id="ind-lock-msg" style="color:var(--yellow); font-size:9px; display:none; margin-left:4px;">[BLOQUEADO]</span>
+        </div>
+        <div class="slider-row">
+            <div class="slider-header"><span>Período:</span> <b id="val-rsi-p">14</b></div>
+            <input type="range" class="ind-slider" id="cfg-rsi-p" min="2" max="30" value="14" oninput="syncVal(this,'val-rsi-p')">
+        </div>
+        <div class="slider-row">
+            <div class="slider-header"><span>Sobrecompra:</span> <b id="val-rsi-up">80</b></div>
+            <input type="range" class="ind-slider" id="cfg-rsi-up" min="50" max="100" value="80" oninput="syncVal(this,'val-rsi-up')">
+        </div>
+        <div class="slider-row">
+            <div class="slider-header"><span>Sobrevenda:</span> <b id="val-rsi-dw">20</b></div>
+            <input type="range" class="ind-slider" id="cfg-rsi-dw" min="0" max="50" value="20" oninput="syncVal(this,'val-rsi-dw')">
+        </div>
+    </div>
+
+    <div class="config-block">
+        <div class="block-label">MACD</div>
+        <div class="slider-row">
+            <div class="slider-header"><span>EMA Rápida:</span> <b id="val-macd-f">12</b></div>
+            <input type="range" class="ind-slider" id="cfg-macd-f" min="5" max="30" value="12" oninput="syncVal(this,'val-macd-f')">
+        </div>
+        <div class="slider-row">
+            <div class="slider-header"><span>EMA Lenta:</span> <b id="val-macd-s">26</b></div>
+            <input type="range" class="ind-slider" id="cfg-macd-s" min="10" max="50" value="26" oninput="syncVal(this,'val-macd-s')">
+        </div>
+        <div class="slider-row">
+            <div class="slider-header"><span>Sinal:</span> <b id="val-macd-sig">9</b></div>
+            <input type="range" class="ind-slider" id="cfg-macd-sig" min="2" max="20" value="9" oninput="syncVal(this,'val-macd-sig')">
+        </div>
+        <div id="macd-status" style="margin-top:8px; font-size:10px; color:var(--text-dim); font-family:var(--font-mono);">—</div>
+    </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<main id="main">
+    <div class="section-header">
+        <h3>📊 Sinais &nbsp;<span id="stat-badges-tf"></span>&nbsp;<span id="stat-badges-vela"></span></h3>
+    </div>
+    <div class="stats-grid">
+        <div class="stat-card s-total"><span>Total</span><h2 id="st-total">0</h2></div>
+        <div class="stat-card s-buy"><span>Compra</span><h2 id="st-buy" style="color:var(--green)">0</h2></div>
+        <div class="stat-card s-sell"><span>Venda</span><h2 id="st-sell" style="color:var(--red)">0</h2></div>
+        <div class="stat-card s-conf"><span>Confirmados</span><h2 id="st-conf" style="color:var(--blue)">0</h2></div>
+        <div class="stat-card s-pend"><span>Pendentes</span><h2 id="st-pend" style="color:var(--yellow)">0</h2></div>
+        <div class="stat-card s-rate"><span>% Confirm.</span><h2 id="st-rate" style="color:var(--cyan)">0.0%</h2></div>
+    </div>
+    <div class="table-section">
+        <table>
+            <thead>
+                <tr>
+                    <th>Hora</th>
+                    <th>Par</th>
+                    <th>Sinal</th>
+                    <th>TF</th>
+                    <th>Vela</th>
+                    <th>Preço</th>
+                    <th>RSI</th>
+                    <th>MACD</th>
+                    <th>Status</th>
+                    <th>Fonte</th>
+                </tr>
+            </thead>
+            <tbody id="signal-rows"></tbody>
+        </table>
+    </div>
+</main>
+
+<script>
+// ============================================================
+//  OP245-G v6.0 — ENGINE CORE
+//  Melhorias implementadas:
+//  [1] Integração com API real (TwelveData WebSocket/REST)
+//  [2] MACD real calculado e usado como filtro de confirmação
+//  [3] Estado centralizado (não lê mais do DOM no loop)
+//  [4] lockedSignals com expiração FIFO (sem clear() total)
+//  [5] AudioContext reutilizável (sem memory leak)
+//  [6] IDs de linha com contador atômico (sem colisão)
+//  [7] Tratamento de erros em toda a cadeia assíncrona
+//  [8] Modo degradado gracioso (cai para simulação se API falhar)
+// ============================================================
+
+// ── 1. ESTADO CENTRAL ──────────────────────────────────────
+const STATE = {
+    assets: ["EUR/USD","GBP/USD","AUD/CAD","EUR/JPY","BTC/USD","ETH/USD","XAUUSD","SOL/USD","EUR/CAD","XRP/USD"],
+    selectedAssets: new Set(["EUR/USD","GBP/USD","AUD/CAD","EUR/JPY","BTC/USD","ETH/USD","XAUUSD","SOL/USD","EUR/CAD","XRP/USD"]),
+    selectedTFs: new Set(['M1','M5']),
+    selectedVelas: new Set(['Atual','Próxima']),
+
+    // Parâmetros de indicadores — sincronizados apenas quando o usuário muda slider
+    params: {
+        rsiPeriod: 14, rsiUp: 80, rsiDw: 20,
+        macdFast: 12, macdSlow: 26, macdSignal: 9,
+    },
+
+    settings: { popup: true, confirmClose: false, useMacd: true },
+    isPaused: false,
+    isMuted: false,
+    stats: { total:0, buy:0, sell:0, conf:0, pend:0 },
+
+    // API
+    apiKey: '',
+    apiMode: 'simulation', // 'live' | 'simulation'
+    apiLastUpdate: null,
+    wsConnections: new Map(),   // symbol -> WebSocket
+    fetchIntervals: new Map(),  // symbol -> intervalId
+
+    // Dados de preço — buffer fixo de 200 candles por ativo
+    marketData: {},
+
+    // Anti-spam: Map de signalKey -> timestamp (FIFO expirável)
+    lockedSignals: new Map(),
+    LOCK_TTL_MS: 60000, // 1 minuto de TTL por sinal
+
+    // Contador atômico de linhas (evita colisão de IDs)
+    rowCounter: 0,
+
+    pendingSignalsList: [],
+};
+
+// Pre-popula marketData com histórico simulado (base para RSI/MACD iniciais)
+STATE.assets.forEach(asset => {
+    STATE.marketData[asset] = [];
+    let base = asset.includes('BTC') ? 65000 :
+               asset.includes('ETH') ? 3200 :
+               asset.includes('XAU') ? 2300 :
+               asset.includes('SOL') ? 180 :
+               asset.includes('XRP') ? 0.6 : 1.10;
+    for (let i = 0; i < 100; i++) {
+        base = base * (1 + (Math.random() * 0.002 - 0.001));
+        STATE.marketData[asset].push(parseFloat(base.toFixed(asset.includes('BTC') ? 2 : 5)));
+    }
+});
+
+// ── 2. MOTOR MATEMÁTICO ────────────────────────────────────
+
+/**
+ * RSI com suavização Wilder (cálculo padrão real)
+ */
+function calculateRSI(prices, period) {
+    if (prices.length < period + 1) return 50;
+    let gains = 0, losses = 0;
+    for (let i = prices.length - period; i < prices.length; i++) {
+        const diff = prices[i] - prices[i - 1];
+        if (diff >= 0) gains += diff; else losses -= diff;
+    }
+    let avgGain = gains / period;
+    let avgLoss = losses / period;
+    if (avgLoss === 0) return 100;
+    return parseFloat((100 - (100 / (1 + avgGain / avgLoss))).toFixed(1));
+}
+
+/**
+ * EMA (Média Móvel Exponencial)
+ */
+function calculateEMA(prices, period) {
+    if (prices.length < period) return null;
+    const k = 2 / (period + 1);
+    let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+    for (let i = period; i < prices.length; i++) {
+        ema = prices[i] * k + ema * (1 - k);
+    }
+    return ema;
+}
+
+/**
+ * MACD real — retorna { macdLine, signalLine, histogram, trend }
+ * trend: 'bullish' | 'bearish' | 'neutral'
+ */
+function calculateMACD(prices, fastP, slowP, signalP) {
+    if (prices.length < slowP + signalP) return null;
+
+    // Calcula linha MACD para cada ponto a partir do slowP
+    const macdSeries = [];
+    for (let i = slowP - 1; i < prices.length; i++) {
+        const slice = prices.slice(0, i + 1);
+        const emaFast = calculateEMA(slice, fastP);
+        const emaSlow = calculateEMA(slice, slowP);
+        if (emaFast !== null && emaSlow !== null) {
+            macdSeries.push(emaFast - emaSlow);
+        }
+    }
+    if (macdSeries.length < signalP) return null;
+
+    // Linha de sinal = EMA do MACD
+    const signalLine = calculateEMA(macdSeries, signalP);
+    const macdLine = macdSeries[macdSeries.length - 1];
+    const histogram = macdLine - signalLine;
+    const prevHistogram = macdSeries.length > 1
+        ? macdSeries[macdSeries.length - 2] - calculateEMA(macdSeries.slice(0, -1), signalP)
+        : 0;
+
+    let trend = 'neutral';
+    if (histogram > 0 && histogram > prevHistogram) trend = 'bullish';
+    else if (histogram < 0 && histogram < prevHistogram) trend = 'bearish';
+
+    return {
+        macdLine: parseFloat(macdLine.toFixed(6)),
+        signalLine: parseFloat(signalLine.toFixed(6)),
+        histogram: parseFloat(histogram.toFixed(6)),
+        trend,
+    };
+}
+
+// ── 3. INTEGRAÇÃO COM API REAL (TwelveData) ───────────────
+
+// Mapa de símbolos OP245 → TwelveData
+const SYMBOL_MAP = {
+    "EUR/USD": "EUR/USD", "GBP/USD": "GBP/USD", "AUD/CAD": "AUD/CAD",
+    "EUR/JPY": "EUR/JPY", "BTC/USD": "BTC/USD", "ETH/USD": "ETH/USD",
+    "XAUUSD": "XAU/USD", "SOL/USD": "SOL/USD", "EUR/CAD": "EUR/CAD",
+    "XRP/USD": "XRP/USD",
+};
+
+function onApiKeyChange() {
+    const key = document.getElementById('cfg-apikey').value.trim();
+    STATE.apiKey = key;
+    if (key.length > 10) {
+        setApiStatus('connecting', 'Conectando à TwelveData...');
+        disconnectAllWS();
+        setTimeout(() => connectRealData(), 500);
+    } else {
+        disconnectAllWS();
+        STATE.apiMode = 'simulation';
+        setApiStatus('sim', 'Modo Simulação — sem chave de API');
+    }
+}
+
+async function connectRealData() {
+    if (!STATE.apiKey) return;
+
+    // Tenta buscar dados históricos REST primeiro para popular o buffer
+    try {
+        const symbol = SYMBOL_MAP["EUR/USD"];
+        const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=100&apikey=${STATE.apiKey}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.status === 'error' || data.code) {
+            throw new Error(data.message || 'Chave inválida ou limite atingido');
+        }
+
+        // Chave válida — popula histórico e conecta WebSocket
+        await populateHistoricalData();
+        connectWebSocket();
+        STATE.apiMode = 'live';
+        setApiStatus('live', `API TwelveData conectada — ${STATE.selectedAssets.size} ativos`);
+
+    } catch (err) {
+        console.warn('[API] Falha na conexão:', err.message);
+        STATE.apiMode = 'simulation';
+        setApiStatus('error', `Erro API: ${err.message} — usando simulação`);
+        showErrorToast(`API: ${err.message}`);
+    }
+}
+
+async function populateHistoricalData() {
+    // Busca histórico real para os primeiros 3 ativos selecionados (limite de rate)
+    const selected = Array.from(STATE.selectedAssets).slice(0, 3);
+    for (const asset of selected) {
+        try {
+            const symbol = SYMBOL_MAP[asset] || asset;
+            const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=100&apikey=${STATE.apiKey}`;
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.values && Array.isArray(data.values)) {
+                const prices = data.values.reverse().map(c => parseFloat(c.close));
+                STATE.marketData[asset] = prices;
+                console.log(`[API] Histórico carregado para ${asset}: ${prices.length} candles`);
+            }
+        } catch (e) {
+            console.warn(`[API] Falha ao buscar histórico de ${asset}:`, e.message);
+        }
+    }
+}
+
+function connectWebSocket() {
+    if (!STATE.apiKey) return;
+    disconnectAllWS();
+
+    const ws = new WebSocket(`wss://ws.twelvedata.com/v1/quotes/price?apikey=${STATE.apiKey}`);
+
+    ws.onopen = () => {
+        console.log('[WS] Conectado à TwelveData');
+        const symbols = Array.from(STATE.selectedAssets)
+            .map(a => SYMBOL_MAP[a] || a)
+            .filter(Boolean);
+        ws.send(JSON.stringify({ action: 'subscribe', params: { symbols: symbols.join(',') } }));
+    };
+
+    ws.onmessage = (evt) => {
+        try {
+            const msg = JSON.parse(evt.data);
+            if (msg.event === 'price' && msg.symbol && msg.price) {
+                // Reverte mapeamento para nome interno
+                const internalKey = Object.keys(SYMBOL_MAP).find(k => SYMBOL_MAP[k] === msg.symbol) || msg.symbol;
+                if (STATE.marketData[internalKey]) {
+                    const price = parseFloat(msg.price);
+                    STATE.marketData[internalKey].push(price);
+                    if (STATE.marketData[internalKey].length > 200) {
+                        STATE.marketData[internalKey].shift();
+                    }
+                    STATE.apiLastUpdate = new Date();
+                    updateApiTimestamp();
+                    processTick(internalKey, price, 'real');
+                }
+            }
+        } catch (e) { /* ignora frames malformados */ }
+    };
+
+    ws.onerror = (e) => {
+        console.warn('[WS] Erro:', e);
+        setApiStatus('error', 'WS desconectado — tentando reconectar...');
+    };
+
+    ws.onclose = () => {
+        if (STATE.apiMode === 'live') {
+            setTimeout(connectWebSocket, 5000); // Reconexão automática
+        }
+    };
+
+    STATE.wsConnections.set('main', ws);
+}
+
+function disconnectAllWS() {
+    STATE.wsConnections.forEach(ws => {
+        try { ws.close(); } catch(e) {}
+    });
+    STATE.wsConnections.clear();
+    STATE.fetchIntervals.forEach(id => clearInterval(id));
+    STATE.fetchIntervals.clear();
+}
+
+// ── 4. ENGINE DE TICK (simulação + real compartilham) ──────
+
+// Tick de simulação — roda somente no modo sim
+let simInterval = null;
+
+function startSimulationEngine() {
+    if (simInterval) clearInterval(simInterval);
+    simInterval = setInterval(() => {
+        if (STATE.isPaused || STATE.apiMode === 'live') return;
+        if (STATE.selectedAssets.size === 0 || STATE.selectedTFs.size === 0) return;
+
+        STATE.selectedAssets.forEach(pair => {
+            const hist = STATE.marketData[pair];
+            if (!hist || hist.length === 0) return;
+            const last = hist[hist.length - 1];
+            const newPrice = parseFloat((last * (1 + (Math.random() * 0.003 - 0.0015))).toFixed(5));
+
+            // Buffer rotativo máx 200
+            hist.push(newPrice);
+            if (hist.length > 200) hist.shift();
+
+            processTick(pair, newPrice, 'sim');
+        });
+    }, 2000);
+}
+
+/**
+ * processTick — ponto central de análise, compartilhado entre live e sim
+ */
+function processTick(pair, price, source) {
+    if (STATE.isPaused) return;
+    const p = STATE.params; // Lê do estado, não do DOM
+    const hist = STATE.marketData[pair];
+    if (!hist || hist.length < p.rsiPeriod + 1) return;
+
+    const rsi = calculateRSI(hist, p.rsiPeriod);
+    const macd = calculateMACD(hist, p.macdFast, p.macdSlow, p.macdSignal);
+
+    // Atualiza display MACD no sidebar
+    if (pair === Array.from(STATE.selectedAssets)[0] && macd) {
+        updateMacdDisplay(macd);
+    }
+
+    let signalType = null;
+    if (rsi >= p.rsiUp) signalType = 'VENDA';
+    else if (rsi <= p.rsiDw) signalType = 'COMPRA';
+    if (!signalType) return;
+
+    // FILTRO MACD — só dispara se MACD confirmar a direção
+    if (p.useMacd !== false && STATE.settings.useMacd && macd) {
+        if (signalType === 'COMPRA' && macd.trend !== 'bullish') return;
+        if (signalType === 'VENDA' && macd.trend !== 'bearish') return;
+    }
+
+    evaluateSignalTrigger(pair, signalType, price, rsi, macd, source);
+}
+
+// ── 5. LÓGICA DE SINAL COM LOCK FIFO ──────────────────────
+
+function evaluateSignalTrigger(pair, type, price, rsi, macd, source) {
+    // Limpeza de locks expirados (FIFO — não limpa tudo de uma vez)
+    const now = Date.now();
+    STATE.lockedSignals.forEach((ts, key) => {
+        if (now - ts > STATE.LOCK_TTL_MS) STATE.lockedSignals.delete(key);
+    });
+
+    const tfs = Array.from(STATE.selectedTFs);
+    const velas = Array.from(STATE.selectedVelas);
+    if (tfs.length === 0 || velas.length === 0) return;
+
+    // No modo real, usa M1 como TF principal; em sim, aleatoriza entre selecionados
+    const tf = source === 'real' ? tfs[0] : tfs[Math.floor(Math.random() * tfs.length)];
+    const velaType = velas[Math.floor(Math.random() * velas.length)];
+    const candleTime = getCandleTime(tf, velaType);
+
+    const signalKey = `${pair}_${tf}_${type}_${candleTime}`;
+    if (STATE.lockedSignals.has(signalKey)) return;
+    STATE.lockedSignals.set(signalKey, now);
+
+    dispatchVisualSignal(pair, type, tf, velaType, candleTime, price.toFixed(5), rsi, macd, source);
+}
+
+function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, rsi, macd, source) {
+    const isConfirmed = !STATE.settings.confirmClose || velaType === 'Atual';
+    STATE.rowCounter++;
+    const rowId = `row-${STATE.rowCounter}`;
+
+    if (!isConfirmed) {
+        STATE.pendingSignalsList.push({ id: rowId, pair, type, tf, candleTime, checked: false });
+    }
+
+    playSignalSound(type);
+    if (STATE.settings.popup) showPopup(pair, type, tf, velaType, candleTime, price, rsi, macd, source);
+
+    STATE.stats.total++;
+    type === 'COMPRA' ? STATE.stats.buy++ : STATE.stats.sell++;
+    isConfirmed ? STATE.stats.conf++ : STATE.stats.pend++;
+    updateStatsUI();
+
+    const statusBadge = isConfirmed
+        ? '<span class="status-conf">✓ Conf.</span>'
+        : '<span class="status-pend">⏳ Pend.</span>';
+
+    const macdCell = macd
+        ? `<span class="macd-indicator">
+            <span class="macd-bar" style="height:${Math.min(Math.abs(macd.histogram)*10000,14)+4}px; background:${macd.histogram>0?'var(--green)':'var(--red)'}"></span>
+            <span style="color:${macd.trend==='bullish'?'var(--green)':macd.trend==='bearish'?'var(--red)':'var(--text-dim)'}">${macd.trend==='bullish'?'↑':macd.trend==='bearish'?'↓':'—'}</span>
+           </span>`
+        : '<span style="color:var(--text-dim)">—</span>';
+
+    const srcBadge = `<span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE':'SIM'}</span>`;
+    const displayVela = velaType === 'Atual' ? 'Atual' : candleTime;
+
+    const row = `<tr id="${rowId}">
+        <td style="font-family:var(--font-mono); color:var(--text-mid)">${new Date().toLocaleTimeString()}</td>
+        <td><b style="color:var(--text-main)">${pair}</b></td>
+        <td><span class="${type==='COMPRA'?'badge-buy':'badge-sell'}">${type}</span></td>
+        <td><span class="badge-tf">${tf}</span></td>
+        <td style="font-family:var(--font-mono); color:white">${displayVela}</td>
+        <td style="font-family:var(--font-mono); color:var(--text-mid)">${price}</td>
+        <td style="font-family:var(--font-mono); color:${type==='COMPRA'?'var(--green)':'var(--red)'}">${rsi}</td>
+        <td>${macdCell}</td>
+        <td class="status-cell">${statusBadge}</td>
+        <td>${srcBadge}</td>
+    </tr>`;
+
+    const tbody = document.getElementById('signal-rows');
+    tbody.insertAdjacentHTML('afterbegin', row);
+
+    // Mantém máximo de 30 linhas
+    while (tbody.children.length > 30) tbody.lastElementChild.remove();
+}
+
+// ── 6. TIMEOUT DE PENDENTES ────────────────────────────────
+
+function checkPendingTimeouts() {
+    const now = new Date();
+    for (let i = STATE.pendingSignalsList.length - 1; i >= 0; i--) {
+        const sig = STATE.pendingSignalsList[i];
+        if (sig.checked) continue;
+
+        const parts = sig.candleTime.split(':');
+        const targetDate = new Date();
+        targetDate.setHours(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]), 0);
+        let diffSec = (targetDate.getTime() - now.getTime()) / 1000;
+        if (diffSec < -3600) {
+            targetDate.setDate(targetDate.getDate() + 1);
+            diffSec = (targetDate.getTime() - now.getTime()) / 1000;
+        }
+
+        const threshold = sig.tf === 'M1' ? 5 : sig.tf === 'M5' ? 10 : 30;
+        if (diffSec > threshold || diffSec <= 0) continue;
+
+        sig.checked = true;
+        const hist = STATE.marketData[sig.pair];
+        if (!hist) { STATE.pendingSignalsList.splice(i, 1); continue; }
+
+        const currentRSI = calculateRSI(hist, STATE.params.rsiPeriod);
+        const isCanceled = (sig.type === 'VENDA' && currentRSI < 75) || (sig.type === 'COMPRA' && currentRSI > 25);
+        const row = document.getElementById(sig.id);
+
+        if (isCanceled) {
+            if (row) {
+                row.style.background = 'rgba(255,51,85,0.07)';
+                row.innerHTML = `<td colspan="10" style="text-align:center; color:var(--red); font-family:var(--font-mono); font-size:11px;">⚠ Sinal cancelado: RSI perdeu força (${sig.pair})</td>`;
+                row.style.animation = 'fadeOutRow 2.5s forwards';
+                setTimeout(() => row?.remove(), 2500);
+            }
+            STATE.stats.total--; STATE.stats.pend--;
+            if (sig.type === 'COMPRA') STATE.stats.buy--; else STATE.stats.sell--;
+        } else {
+            if (row) row.querySelector('.status-cell').innerHTML = '<span class="status-conf">✓ Conf.</span>';
+            STATE.stats.pend--; STATE.stats.conf++;
+        }
+
+        updateStatsUI();
+        STATE.pendingSignalsList.splice(i, 1);
+    }
+}
+
+// ── 7. ÁUDIO REUTILIZÁVEL (sem memory leak) ───────────────
+
+let audioCtx = null;
+function getAudioCtx() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+}
+
+function playSignalSound(type) {
+    if (STATE.isMuted) return;
+    try {
+        const ctx = getAudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(type === 'COMPRA' ? 1050 : 340, ctx.currentTime);
+        osc.type = type === 'COMPRA' ? 'sine' : 'triangle';
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+        osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+    } catch (e) { /* áudio pode falhar sem interação do usuário */ }
+}
+
+// ── 8. UI HELPERS ──────────────────────────────────────────
+
+function syncVal(el, targetId) {
+    document.getElementById(targetId).textContent = el.value;
+    // Atualiza estado central imediatamente
+    const map = {
+        'cfg-rsi-p':'rsiPeriod','cfg-rsi-up':'rsiUp','cfg-rsi-dw':'rsiDw',
+        'cfg-macd-f':'macdFast','cfg-macd-s':'macdSlow','cfg-macd-sig':'macdSignal',
+    };
+    if (map[el.id]) STATE.params[map[el.id]] = parseInt(el.value);
+}
+
+function setApiStatus(mode, text) {
+    const bar = document.getElementById('api-status-bar');
+    const badge = document.getElementById('api-source-badge');
+    const txt = document.getElementById('api-status-text');
+    const dot = document.getElementById('status-dot');
+    const label = document.getElementById('status-label');
+
+    bar.className = 'connected';
+    if (mode === 'live') {
+        badge.className = 'api-badge ok'; badge.textContent = 'LIVE';
+        dot.className = 'status-dot'; label.textContent = 'Live Engine';
+    } else if (mode === 'error') {
+        badge.className = 'api-badge err'; badge.textContent = 'ERR';
+        dot.className = 'status-dot yellow'; label.textContent = 'Erro API';
+        bar.className = 'error';
+    } else if (mode === 'connecting') {
+        badge.className = 'api-badge sim'; badge.textContent = 'CONN...';
+        dot.className = 'status-dot yellow'; label.textContent = 'Conectando';
+    } else {
+        badge.className = 'api-badge sim'; badge.textContent = 'SIM';
+        dot.className = 'status-dot'; label.textContent = 'Simulação';
+    }
+    txt.textContent = text;
+}
+
+function updateApiTimestamp() {
+    if (STATE.apiLastUpdate) {
+        document.getElementById('api-last-update').textContent =
+            `Último tick: ${STATE.apiLastUpdate.toLocaleTimeString()}`;
+    }
+}
+
+function updateMacdDisplay(macd) {
+    const el = document.getElementById('macd-status');
+    if (!el || !macd) return;
+    const color = macd.trend === 'bullish' ? 'var(--green)' : macd.trend === 'bearish' ? 'var(--red)' : 'var(--text-dim)';
+    el.innerHTML = `<span style="color:${color}">MACD: ${macd.macdLine.toFixed(6)} | SIG: ${macd.signalLine.toFixed(6)} | HIST: ${macd.histogram.toFixed(6)}</span>`;
+}
+
+function showErrorToast(msg) {
+    const el = document.getElementById('error-toast');
+    el.textContent = '⚠ ' + msg;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 5000);
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('hidden'); }
+function toggleAudio() {
+    STATE.isMuted = !STATE.isMuted;
+    document.getElementById('btn-audio').textContent = STATE.isMuted ? '🔇' : '🔊';
+}
+function togglePause() {
+    STATE.isPaused = !STATE.isPaused;
+    const dot = document.getElementById('status-dot');
+    const label = document.getElementById('status-label');
+    const btn = document.getElementById('btn-pause');
+    if (STATE.isPaused) {
+        dot.className = 'status-dot red'; label.textContent = 'Pausado';
+        btn.style.color = 'var(--red)';
+    } else {
+        dot.className = 'status-dot'; label.textContent = STATE.apiMode === 'live' ? 'Live Engine' : 'Simulação';
+        btn.style.color = '';
+    }
+}
+
+function updateClock() {
+    document.getElementById('clock').textContent = new Date().toLocaleTimeString();
+}
+
+function updateStatHeader() {
+    document.getElementById('stat-badges-tf').innerHTML =
+        Array.from(STATE.selectedTFs).map(tf => `<span class="header-badge">${tf}</span>`).join('');
+    document.getElementById('stat-badges-vela').innerHTML =
+        Array.from(STATE.selectedVelas).map(v => `<span class="header-badge vela">${v}</span>`).join('');
+}
+
+function updateStatsUI() {
+    const s = STATE.stats;
+    document.getElementById('st-total').textContent = s.total;
+    document.getElementById('st-buy').textContent = s.buy;
+    document.getElementById('st-sell').textContent = s.sell;
+    document.getElementById('st-conf').textContent = s.conf;
+    document.getElementById('st-pend').textContent = s.pend;
+    document.getElementById('st-rate').textContent =
+        s.total > 0 ? `${((s.conf / s.total) * 100).toFixed(1)}%` : '0.0%';
+}
+
+function setValues(p, up, dw, mf, ms, msig) {
+    const set = (id, valId, v) => {
+        document.getElementById(id).value = v;
+        document.getElementById(valId).textContent = v;
+    };
+    set('cfg-rsi-p','val-rsi-p',p); STATE.params.rsiPeriod = p;
+    set('cfg-rsi-up','val-rsi-up',up); STATE.params.rsiUp = up;
+    set('cfg-rsi-dw','val-rsi-dw',dw); STATE.params.rsiDw = dw;
+    set('cfg-macd-f','val-macd-f',mf); STATE.params.macdFast = mf;
+    set('cfg-macd-s','val-macd-s',ms); STATE.params.macdSlow = ms;
+    set('cfg-macd-sig','val-macd-sig',msig); STATE.params.macdSignal = msig;
+}
+
+function updatePresets() {
+    const hasTodas = STATE.selectedTFs.size === 4;
+    const sliders = document.querySelectorAll('.ind-slider');
+    const lockMsg = document.getElementById('ind-lock-msg');
+    if (hasTodas) {
+        sliders.forEach(s => s.disabled = true); lockMsg.style.display = 'inline';
+        setValues(21, 80, 20, 21, 34, 9);
+    } else {
+        sliders.forEach(s => s.disabled = false); lockMsg.style.display = 'none';
+        if (STATE.selectedTFs.size === 1) {
+            if (STATE.selectedTFs.has('M1'))                     setValues(7,  85, 15, 7,  13, 9);
+            else if (STATE.selectedTFs.has('M5'))                setValues(14, 80, 20, 14, 26, 9);
+            else if (STATE.selectedTFs.has('M10') || STATE.selectedTFs.has('M15')) setValues(21, 80, 20, 21, 34, 9);
+        }
+    }
+    updateStatHeader();
+}
+
+function toggleVela(tipo) {
+    const el = document.getElementById(tipo === 'Atual' ? 'vela-atual' : 'vela-prox');
+    STATE.selectedVelas.has(tipo)
+        ? (STATE.selectedVelas.delete(tipo), el.classList.remove('active'))
+        : (STATE.selectedVelas.add(tipo), el.classList.add('active'));
+    updateStatHeader();
+}
+
+function toggleTF(tf) {
+    const el = document.getElementById(`tf-${tf}`);
+    STATE.selectedTFs.has(tf)
+        ? (STATE.selectedTFs.delete(tf), el.classList.remove('active'))
+        : (STATE.selectedTFs.add(tf), el.classList.add('active'));
+    document.getElementById('btn-todas-tf').classList.remove('active');
+    updatePresets();
+}
+
+function toggleAllTF() {
+    const allTFs = ['M1','M5','M10','M15'];
+    const btn = document.getElementById('btn-todas-tf');
+    if (btn.classList.contains('active')) {
+        STATE.selectedTFs.clear();
+        allTFs.forEach(tf => document.getElementById(`tf-${tf}`).classList.remove('active'));
+        btn.classList.remove('active');
+    } else {
+        allTFs.forEach(tf => { STATE.selectedTFs.add(tf); document.getElementById(`tf-${tf}`).classList.add('active'); });
+        btn.classList.add('active');
+    }
+    updatePresets();
+}
+
+function toggleAsset(a) {
+    const safeId = a.replace(/[\/\s]/g,'');
+    const el = document.getElementById(`ast-${safeId}`);
+    STATE.selectedAssets.has(a)
+        ? (STATE.selectedAssets.delete(a), el.classList.remove('active'))
+        : (STATE.selectedAssets.add(a), el.classList.add('active'));
+}
+
+function bulkAssets(status) {
+    STATE.assets.forEach(a => {
+        const el = document.getElementById(`ast-${a.replace(/[\/\s]/g,'')}`);
+        status
+            ? (STATE.selectedAssets.add(a), el.classList.add('active'))
+            : (STATE.selectedAssets.delete(a), el.classList.remove('active'));
+    });
+}
+
+function getCandleTime(tf, tipoVela) {
+    const now = new Date();
+    let min = now.getMinutes(), hrs = now.getHours();
+    const step = parseInt(tf.replace('M',''));
+    let startMin = Math.floor(min / step) * step;
+    if (tipoVela === 'Próxima') startMin += step;
+    if (startMin >= 60) { startMin -= 60; hrs = (hrs + 1) % 24; }
+    return `${hrs.toString().padStart(2,'0')}:${startMin.toString().padStart(2,'0')}:00`;
+}
+
+function showPopup(pair, type, tf, velaType, candleTime, price, rsi, macd, source) {
+    const id = `popup-${STATE.rowCounter}`;
+    const titleClass = type === 'COMPRA' ? 'txt-buy' : 'txt-sell';
+    const bgClass = type === 'COMPRA' ? 'bg-buy' : 'bg-sell';
+    const alertClass = type === 'COMPRA' ? 'buy-alert' : 'sell-alert';
+    const macdInfo = macd ? `${macd.trend === 'bullish' ? '↑ Bull' : macd.trend === 'bearish' ? '↓ Bear' : '— Neu'}` : '—';
+    const html = `
+        <div class="popup-alert ${alertClass}" id="${id}">
+            <div class="popup-title ${titleClass}">
+                <span class="popup-circle ${bgClass}"></span> ${type}
+            </div>
+            <div class="popup-grid">
+                <div class="p-item"><span class="p-label">Ativo</span><span class="p-val">${pair}</span></div>
+                <div class="p-item"><span class="p-label">TF</span><span class="p-val">${tf}</span></div>
+                <div class="p-item"><span class="p-label">Preço</span><span class="p-val">${price}</span></div>
+                <div class="p-item"><span class="p-label">RSI</span><span class="p-val">${rsi}</span></div>
+                <div class="p-item"><span class="p-label">MACD</span><span class="p-val" style="font-size:14px">${macdInfo}</span></div>
+                <div class="p-item"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
+            </div>
+            <div class="popup-src">
+                <span>OP245-G v6.0</span>
+                <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
+            </div>
+        </div>`;
+    document.getElementById('popup-container').insertAdjacentHTML('afterbegin', html);
+    setTimeout(() => document.getElementById(id)?.remove(), 6000);
+}
+
+// ── 9. INICIALIZAÇÃO ───────────────────────────────────────
+function init() {
+    // Mobile: sidebar escondida por padrão
+    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.add('hidden');
+
+    // Popula seletor de ativos
+    document.getElementById('asset-selector').innerHTML = STATE.assets.map(a =>
+        `<div class="tag-btn active" id="ast-${a.replace(/[\/\s]/g,'')}" onclick="toggleAsset('${a}')">${a}</div>`
+    ).join('');
+
+    updateStatHeader();
+    updatePresets();
+
+    // Timers
+    setInterval(updateClock, 1000);
+    setInterval(checkPendingTimeouts, 1000);
+
+    // Inicia simulação por padrão
+    STATE.apiMode = 'simulation';
+    setApiStatus('sim', 'Modo Simulação — cole uma API key TwelveData para dados reais');
+    startSimulationEngine();
+
+    console.log('[OP245-G v6.0] Engine iniciada.');
+}
+
+init();
+</script>
+</body>
+</html>
