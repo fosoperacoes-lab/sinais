@@ -1579,13 +1579,12 @@ async function sendTelegramMessage(text) {
     const { token, chatId } = STATE.telegram;
     if (!token || !chatId) return false;
     try {
-        const url = `https://api.telegram.org/bot${token}/sendMessage`;
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
-        });
+        // Usa GET com parâmetros na URL para evitar CORS preflight
+        const encoded = encodeURIComponent(text);
+        const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encoded}&parse_mode=Markdown`;
+        const res = await fetch(url, { method: 'GET' });
         const data = await res.json();
+        if (!data.ok) console.warn('[Telegram] Erro:', data.description);
         return data.ok === true;
     } catch(e) {
         console.warn('[Telegram] Erro ao enviar:', e.message);
