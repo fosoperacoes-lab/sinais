@@ -491,6 +491,11 @@
             <label class="chk-label"><input type="checkbox" id="chk-macd" checked onchange="settings.useMacd = this.checked"> Filtro MACD ativo</label>
             <label class="chk-label"><input type="checkbox" id="chk-stoch" checked onchange="STATE.settings.useStoch = this.checked"> Filtro Stoch RSI ativo</label>
             <label class="chk-label"><input type="checkbox" id="chk-mm200" checked onchange="STATE.settings.useMM200 = this.checked"> Filtro MM200 ativo</label>
+            <label class="chk-label"><input type="checkbox" id="chk-ignore-otc" checked onchange="STATE.settings.ignoreOTC = this.checked"> Ignorar OTC</label>
+        </div>
+        <div id="otc-status-bar" style="display:none; margin-top:10px; padding:8px 10px; border-radius:4px; background:rgba(255,204,0,0.07); border:1px solid rgba(255,204,0,0.3);">
+            <div style="font-size:11px; color:var(--yellow); font-weight:700; margin-bottom:4px;">⚠ MERCADO OTC ATIVO</div>
+            <div id="otc-status-text" style="font-size:10px; color:var(--text-dim); line-height:1.5;"></div>
         </div>
     </div>
 
@@ -647,10 +652,10 @@ const STATE = {
         stochRsiPeriod: 14, stochKPeriod: 14, stochUp: 80, stochDw: 20,
     },
 
-    settings: { popup: true, confirmClose: false, useMacd: true, useStoch: true, useMM200: true },
+    settings: { popup: true, confirmClose: false, useMacd: true, useStoch: true, useMM200: true, ignoreOTC: true },
 
     // Telegram
-    telegram: { token: '', chatId: '', active: false },
+    telegram: { token: '8727416448:AAFEzWkfi0BUr1T0lX8cki8oK8C77qMiGFU', chatId: '-5198350830', active: false },
     isPaused: false,
     isMuted: false,
     stats: { total:0, buy:0, sell:0, conf:0, pend:0 },
@@ -964,7 +969,10 @@ function connectWebSocket() {
                     }
                     STATE.apiLastUpdate = new Date();
                     updateApiTimestamp();
-                    processTick(internalKey, price, 'real');
+                    // Só processa se o par estiver selecionado pelo usuário
+                    if (STATE.selectedAssets.has(internalKey)) {
+                        processTick(internalKey, price, 'real');
+                    }
                 }
             }
         } catch (e) { /* ignora frames malformados */ }
@@ -1019,12 +1027,57 @@ function startSimulationEngine() {
     }, 2000);
 }
 
-/**
- * processTick — ponto central de análise, compartilhado entre live e sim
+// ── DETECÇÃO OTC ───────────────────────────────────────────
+// Pares Forex/Commodity ficam OTC no fim de semana (Sex 18h BRT → Dom 22h BRT)
+// Criptos são 24/7 — nunca entram em OTC
+const OTC_PAIRS = new Set(['EUR/USD','GBP/USD','AUD/CAD','EUR/JPY','EUR/CAD','XAUUSD']);
+const CRYPTO_PAIRS = new Set(['BTC/USD','ETH/USD','SOL/USD','XRP/USD']);
+
+function isMarketOTC(pair) {
+    if (CRYPTO_PAIRS.has(pair)) return false; // cripto nunca é OTC
+    if (!OTC_PAIRS.has(pair)) return false;
+
+    // Verifica se é fim de semana no horário de Brasília (UTC-3)
+    const now = new Date();
+    const brtOffset = -3 * 60; // UTC-3
+    const brtTime = new Date(now.getTime() + (now.getTimezoneOffset() + brtOffset) * 60000);
+    const day = brtTime.getDay(); // 0=Dom, 1=Seg ... 5=Sex, 6=Sáb
+    const hour = brtTime.getHours();
+    const min = brtTime.getMinutes();
+    const timeInMin = hour * 60 + min;
+
+    // Sexta após 18h BRT → OTC
+    if (day === 5 && timeInMin >= 18 * 60) return true;
+    // Sábado inteiro → OTC
+    if (day === 6) return true;
+    // Domingo até 22h BRT → OTC
+    if (day === 0 && timeInMin < 22 * 60) return true;
+
+    return false;
+}
+
+function updateOTCStatusBar() {
+    const bar = document.getElementById('otc-status-bar');
+    const txt = document.getElementById('otc-status-text');
+    if (!bar || !txt) return;
+
+    const otcPairsActive = Array.from(OTC_PAIRS).filter(p => isMarketOTC(p));
+    if (otcPairsActive.length > 0 && STATE.settings.ignoreOTC) {
+        bar.style.display = 'block';
+        txt.innerHTML = `Ignorando: <span style="color:var(--yellow)">${otcPairsActive.join(', ')}</span><br>
+            <span style="color:var(--text-dim)">Sinais ativos apenas para criptos.</span>`;
+    } else {
+        bar.style.display = 'none';
+    }
+}
+
+
  * Quando múltiplos TFs estão selecionados, avalia cada TF com seus próprios parâmetros
  */
 function processTick(pair, price, source) {
     if (STATE.isPaused) return;
+    // ── FILTRO OTC — ignora pares em horário OTC se opção ativa ──
+    if (STATE.settings.ignoreOTC && isMarketOTC(pair)) return;
     const s = STATE.settings;
     const hist = STATE.marketData[pair];
     if (!hist || hist.length < 10) return;
@@ -1632,6 +1685,8 @@ function init() {
 
     setInterval(updateClock, 1000);
     setInterval(checkPendingTimeouts, 1000);
+    setInterval(updateOTCStatusBar, 30000); // verifica OTC a cada 30s
+    updateOTCStatusBar(); // verifica imediatamente na abertura
 
     // Carrega chave salva do localStorage (prioridade) ou usa chave embutida
     let savedKey = '';
@@ -1646,13 +1701,23 @@ function init() {
         STATE.apiKey = _decodeKey();
     }
 
-    // Carrega configurações Telegram salvas
+    // Carrega configurações Telegram — usa pré-configurado ou localStorage se existir
     try {
-        const tgToken  = localStorage.getItem('op245_tg_token')  || '';
-        const tgChatId = localStorage.getItem('op245_tg_chatid') || '';
-        if (tgToken)  { STATE.telegram.token  = tgToken;  document.getElementById('cfg-tg-token').value  = tgToken;  }
-        if (tgChatId) { STATE.telegram.chatId = tgChatId; document.getElementById('cfg-tg-chatid').value = tgChatId; }
-        if (tgToken && tgChatId) onTelegramChange();
+        const tgToken  = localStorage.getItem('op245_tg_token')  || STATE.telegram.token;
+        const tgChatId = localStorage.getItem('op245_tg_chatid') || STATE.telegram.chatId;
+        STATE.telegram.token  = tgToken;
+        STATE.telegram.chatId = tgChatId;
+        const tokenField  = document.getElementById('cfg-tg-token');
+        const chatIdField = document.getElementById('cfg-tg-chatid');
+        if (tokenField)  tokenField.value  = tgToken;
+        if (chatIdField) chatIdField.value = tgChatId;
+        if (tgToken && tgChatId) {
+            // Atualiza status visual como configurado mas inativo
+            document.getElementById('tg-status-dot').style.cssText =
+                'width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--yellow);box-shadow:0 0 6px var(--yellow)';
+            document.getElementById('tg-status-label').textContent = 'Configurado — ative quando precisar';
+            document.getElementById('tg-status-label').style.color = 'var(--yellow)';
+        }
     } catch(e) {}
 
     setApiStatus('connecting', 'Conectando à TwelveData...');
