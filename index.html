@@ -820,6 +820,7 @@ function onApiKeyChange() {
     const key = document.getElementById('cfg-apikey').value.trim();
     if (key.length > 10) {
         STATE.apiKey = key;
+        try { localStorage.setItem('op245_apikey', key); } catch(e) {}
         setApiStatus('connecting', 'Conectando com nova chave...');
         disconnectAllWS();
         setTimeout(() => connectRealData(), 500);
@@ -1452,10 +1453,21 @@ function init() {
     setInterval(updateClock, 1000);
     setInterval(checkPendingTimeouts, 1000);
 
-    // Conecta automaticamente com a chave padrão
-    STATE.apiKey = _decodeKey();
+    // Carrega chave salva do localStorage (prioridade) ou usa chave embutida
+    let savedKey = '';
+    try { savedKey = localStorage.getItem('op245_apikey') || ''; } catch(e) {}
+
+    if (savedKey.length > 10) {
+        STATE.apiKey = savedKey;
+        // Preenche o campo visualmente se estiver visível
+        const field = document.getElementById('cfg-apikey');
+        if (field) field.value = savedKey;
+    } else {
+        STATE.apiKey = _decodeKey();
+    }
+
     setApiStatus('connecting', 'Conectando à TwelveData...');
-    startSimulationEngine(); // Inicia simulação enquanto API conecta
+    startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
     console.log('[OP245-G v6.2] Engine iniciada.');
