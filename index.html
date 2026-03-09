@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OPERACIONAL 245 v6.0 | Engine</title>
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>OPERACIONAL 245 v6.2 | Engine</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-body: #020608;
@@ -13,9 +13,9 @@
             --bg-card2: #0d1a26;
             --border: #142030;
             --border2: #1c2f42;
-            --text-main: #c8d8e8;
-            --text-dim: #4a6070;
-            --text-mid: #7a9ab0;
+            --text-main: #d4e4f4;
+            --text-dim: #5a7080;
+            --text-mid: #8aaac0;
             --green: #00ff88;
             --green-dim: #00c860;
             --red: #ff3355;
@@ -25,8 +25,8 @@
             --yellow: #ffcc00;
             --cyan: #00eeff;
             --purple: #aa55ff;
-            --font-mono: 'Share Tech Mono', monospace;
-            --font-main: 'Rajdhani', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
+            --font-main: 'IBM Plex Sans', sans-serif;
         }
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,7 +38,10 @@
             display: flex;
             height: 100vh;
             overflow: hidden;
-            font-size: 14px;
+            font-size: 15px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             background-image:
                 radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,100,200,0.06) 0%, transparent 70%),
                 linear-gradient(180deg, #020608 0%, #040c14 100%);
@@ -58,13 +61,14 @@
             display: flex; align-items: center; gap: 10px;
         }
         .nav-logo {
-            font-family: var(--font-mono); font-size: 15px;
-            color: var(--blue); letter-spacing: 2px; font-weight: bold;
+            font-family: var(--font-mono); font-size: 17px;
+            color: var(--blue); letter-spacing: 3px; font-weight: 700;
         }
         .nav-version {
-            font-size: 10px; color: var(--text-dim);
+            font-size: 12px; color: var(--text-mid);
             background: var(--bg-card2); border: 1px solid var(--border);
-            padding: 2px 6px; border-radius: 3px; font-family: var(--font-mono);
+            padding: 3px 10px; border-radius: 3px; font-family: var(--font-mono);
+            letter-spacing: 1px;
         }
         .nav-right { display: flex; gap: 6px; align-items: center; }
         .icon-btn {
@@ -76,9 +80,9 @@
         .icon-btn:hover { background: var(--bg-card); border-color: var(--border2); }
 
         #sys-status {
-            font-size: 11px; font-family: var(--font-mono);
-            display: flex; align-items: center; gap: 5px;
-            padding: 4px 10px; border-radius: 4px;
+            font-size: 13px; font-family: var(--font-mono);
+            display: flex; align-items: center; gap: 6px;
+            padding: 5px 12px; border-radius: 4px;
             background: var(--bg-card2); border: 1px solid var(--border);
         }
         .status-dot {
@@ -91,27 +95,29 @@
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
         #clock {
-            font-family: var(--font-mono); font-size: 13px;
-            color: var(--blue); letter-spacing: 1px;
-            padding: 4px 10px; background: var(--bg-card2);
+            font-family: var(--font-mono); font-size: 15px;
+            color: var(--blue); letter-spacing: 2px;
+            padding: 5px 12px; background: var(--bg-card2);
             border: 1px solid var(--border); border-radius: 4px;
-            min-width: 80px; text-align: center;
+            min-width: 90px; text-align: center; font-weight: 500;
         }
 
         /* ── API STATUS BAR ── */
         #api-status-bar {
             position: fixed; top: 52px; left: 0; right: 0; z-index: 999;
-            padding: 5px 16px; font-size: 11px; font-family: var(--font-mono);
-            display: flex; align-items: center; gap: 8px;
+            padding: 6px 16px; font-size: 12px; font-family: var(--font-mono);
+            display: flex; align-items: center; gap: 10px;
             background: rgba(10,21,32,0.9); border-bottom: 1px solid var(--border);
             transition: 0.3s;
         }
         #api-status-bar.connected { border-bottom-color: rgba(0,255,136,0.3); }
         #api-status-bar.error { border-bottom-color: rgba(255,51,85,0.3); }
         .api-badge {
-            padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: bold;
+            padding: 2px 10px; border-radius: 3px; font-size: 13px; font-weight: bold;
             background: var(--bg-card); border: 1px solid var(--border2);
         }
+        #api-status-bar.connected { border-bottom-color: rgba(0,255,136,0.3); }
+        #api-status-bar.error { border-bottom-color: rgba(255,51,85,0.3); }
         .api-badge.ok { border-color: var(--green-dim); color: var(--green); }
         .api-badge.err { border-color: var(--red-dim); color: var(--red); }
         .api-badge.sim { border-color: var(--yellow); color: var(--yellow); }
@@ -133,8 +139,8 @@
         .config-block { margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 14px; }
         .config-block:last-child { border-bottom: none; }
         .block-label {
-            font-size: 10px; color: var(--text-dim); font-weight: 700;
-            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px;
+            font-size: 12px; color: var(--text-mid); font-weight: 700;
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;
             display: flex; align-items: center; gap: 6px;
         }
         .block-label::after {
@@ -147,10 +153,10 @@
         .grid-4 { grid-template-columns: repeat(4, 1fr); }
         .tag-btn {
             background: var(--bg-card); border: 1px solid var(--border);
-            padding: 7px 4px; font-size: 11px; text-align: center;
-            border-radius: 4px; cursor: pointer; color: var(--text-dim);
+            padding: 9px 4px; font-size: 13px; text-align: center;
+            border-radius: 4px; cursor: pointer; color: var(--text-mid);
             transition: 0.15s; font-family: var(--font-main); font-weight: 600;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
         .tag-btn:hover { border-color: var(--border2); color: var(--text-mid); }
         .tag-btn.active {
@@ -161,16 +167,16 @@
         .chk-group { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
         .chk-label {
             display: flex; align-items: center; gap: 8px;
-            font-size: 12px; color: var(--text-mid); cursor: pointer;
+            font-size: 14px; color: var(--text-main); cursor: pointer;
         }
-        .chk-label input { accent-color: var(--blue); }
+        .chk-label input { accent-color: var(--blue); width: 15px; height: 15px; }
 
-        .slider-row { margin-top: 10px; }
+        .slider-row { margin-top: 12px; }
         .slider-header {
             display: flex; justify-content: space-between;
-            font-size: 11px; color: var(--text-dim); margin-bottom: 5px;
+            font-size: 13px; color: var(--text-mid); margin-bottom: 6px;
         }
-        .slider-header b { color: var(--text-main); font-weight: 600; font-family: var(--font-mono); }
+        .slider-header b { color: var(--text-main); font-weight: 600; font-family: var(--font-mono); font-size: 14px; }
 
         input[type="range"] {
             width: 100%; height: 3px; background: var(--border2);
@@ -192,13 +198,13 @@
             margin-bottom: 14px; flex-wrap: wrap;
         }
         .section-header h3 {
-            margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 1px;
+            margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 1px;
             text-transform: uppercase; color: var(--text-mid);
             display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
         }
         .header-badge {
             background: var(--blue-dim); color: white;
-            padding: 2px 7px; border-radius: 3px; font-size: 10px;
+            padding: 3px 9px; border-radius: 3px; font-size: 12px;
             font-weight: 700; font-family: var(--font-mono); letter-spacing: 1px;
         }
         .header-badge.vela {
@@ -227,24 +233,25 @@
         .stat-card.s-conf::before { background: var(--blue-dim); }
         .stat-card.s-pend::before { background: var(--yellow); }
         .stat-card.s-rate::before { background: var(--cyan); }
-        .stat-card span { color: var(--text-dim); font-size: 10px; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
-        .stat-card h2 { margin: 0; font-size: 22px; font-weight: 700; font-family: var(--font-mono); }
+        .stat-card span { color: var(--text-mid); font-size: 12px; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+        .stat-card h2 { margin: 0; font-size: 26px; font-weight: 700; font-family: var(--font-mono); }
 
         /* ── TABLE ── */
         .table-section {
             background: var(--bg-card); border: 1px solid var(--border2);
             border-radius: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
         }
-        table { width: 100%; border-collapse: collapse; min-width: 780px; }
+        table { width: 100%; border-collapse: collapse; min-width: 820px; }
         th {
-            background: var(--bg-card2); color: var(--text-dim);
-            padding: 11px 12px; font-size: 10px; text-transform: uppercase;
+            background: var(--bg-card2); color: var(--text-mid);
+            padding: 13px 14px; font-size: 12px; text-transform: uppercase;
             text-align: left; border-bottom: 1px solid var(--border2);
             white-space: nowrap; letter-spacing: 1.5px; font-weight: 700;
+            font-family: var(--font-main);
         }
         td {
-            padding: 10px 12px; border-bottom: 1px solid var(--border);
-            font-size: 12px; white-space: nowrap; transition: 0.2s;
+            padding: 12px 14px; border-bottom: 1px solid var(--border);
+            font-size: 14px; white-space: nowrap; transition: 0.2s;
             font-family: var(--font-main);
         }
         tbody tr:hover { background: rgba(255,255,255,0.02); }
@@ -252,42 +259,64 @@
 
         .badge-buy {
             color: var(--green); border: 1px solid var(--green-dim);
-            padding: 3px 9px; border-radius: 3px; font-weight: 700;
-            font-size: 10px; letter-spacing: 1px;
+            padding: 4px 11px; border-radius: 3px; font-weight: 700;
+            font-size: 12px; letter-spacing: 1px;
             background: rgba(0,255,136,0.06);
         }
         .badge-sell {
             color: var(--red); border: 1px solid var(--red-dim);
-            padding: 3px 9px; border-radius: 3px; font-weight: 700;
-            font-size: 10px; letter-spacing: 1px;
+            padding: 4px 11px; border-radius: 3px; font-weight: 700;
+            font-size: 12px; letter-spacing: 1px;
             background: rgba(255,51,85,0.06);
         }
         .status-conf {
             color: var(--blue); border: 1px solid var(--blue-dim);
-            padding: 2px 8px; border-radius: 12px; font-size: 10px;
+            padding: 3px 10px; border-radius: 12px; font-size: 12px;
             background: rgba(0,170,255,0.06); font-family: var(--font-mono);
         }
         .status-pend {
             color: var(--yellow); border: 1px solid var(--yellow);
-            padding: 2px 8px; border-radius: 12px; font-size: 10px;
+            padding: 3px 10px; border-radius: 12px; font-size: 12px;
             background: rgba(255,204,0,0.06); font-family: var(--font-mono);
         }
         .badge-tf {
             background: rgba(0,170,255,0.1); border: 1px solid var(--blue-dim);
-            padding: 2px 6px; border-radius: 3px; font-size: 10px;
+            padding: 3px 8px; border-radius: 3px; font-size: 12px;
             color: var(--blue); font-family: var(--font-mono);
         }
         .badge-src {
-            font-size: 9px; padding: 1px 5px; border-radius: 3px;
+            font-size: 13px; padding: 2px 7px; border-radius: 3px;
             font-family: var(--font-mono); font-weight: bold;
         }
         .badge-src.real { color: var(--green); border: 1px solid var(--green-dim); background: rgba(0,255,136,0.06); }
         .badge-src.sim { color: var(--yellow); border: 1px solid var(--yellow); background: rgba(255,204,0,0.06); }
 
+        /* ── MM200 TREND BADGE ── */
+        .badge-mm200 {
+            font-size: 13px; padding: 2px 8px; border-radius: 3px;
+            font-family: var(--font-mono); font-weight: bold; letter-spacing: 1px;
+        }
+        .badge-mm200.bull { color: var(--green); border: 1px solid var(--green-dim); background: rgba(0,255,136,0.06); }
+        .badge-mm200.bear { color: var(--red); border: 1px solid var(--red-dim); background: rgba(255,51,85,0.06); }
+        .badge-mm200.neut { color: var(--text-dim); border: 1px solid var(--border2); }
+
+        /* ── STOCH RSI GAUGE ── */
+        .stoch-gauge {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-family: var(--font-mono); font-size: 13px;
+        }
+        .stoch-bar-wrap {
+            width: 40px; height: 6px; background: var(--border2);
+            border-radius: 3px; overflow: hidden; display: inline-block;
+        }
+        .stoch-bar-fill {
+            height: 100%; border-radius: 3px; transition: width 0.4s, background 0.4s;
+        }
+
         /* ── MACD ROW ── */
         .macd-indicator {
             display: inline-flex; align-items: center; gap: 4px;
-            font-family: var(--font-mono); font-size: 10px;
+            font-family: var(--font-mono); font-size: 13px;
         }
         .macd-bar {
             width: 4px; border-radius: 1px; display: inline-block;
@@ -300,7 +329,7 @@
         }
         .popup-alert {
             background: rgba(6,13,18,0.97); border: 1px solid var(--border2);
-            padding: 14px; border-radius: 6px; width: 265px;
+            padding: 16px; border-radius: 6px; width: 280px;
             animation: slideIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
             pointer-events: all; box-shadow: 0 12px 40px rgba(0,0,0,0.8);
             backdrop-filter: blur(20px);
@@ -309,20 +338,20 @@
         .popup-alert.sell-alert { border-color: rgba(255,51,85,0.4); }
         .popup-title {
             display: flex; align-items: center; gap: 8px;
-            font-size: 16px; font-weight: 700; text-transform: uppercase;
+            font-size: 18px; font-weight: 700; text-transform: uppercase;
             letter-spacing: 2px;
-            border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px;
+            border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 12px;
             font-family: var(--font-mono);
         }
-        .popup-circle { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .popup-circle { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
         .txt-buy { color: var(--green); } .txt-sell { color: var(--red); }
         .bg-buy { background: var(--green); box-shadow: 0 0 8px var(--green); }
         .bg-sell { background: var(--red); box-shadow: 0 0 8px var(--red); }
-        .popup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px; }
+        .popup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 8px; }
         .p-item { display: flex; flex-direction: column; }
-        .p-label { font-size: 10px; color: var(--text-dim); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
-        .p-val { font-size: 18px; font-weight: 600; color: white; font-family: var(--font-mono); }
-        .popup-src { font-size: 9px; font-family: var(--font-mono); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); color: var(--text-dim); display: flex; justify-content: space-between; }
+        .p-label { font-size: 13px; color: var(--text-dim); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
+        .p-val { font-size: 20px; font-weight: 600; color: white; font-family: var(--font-mono); }
+        .popup-src { font-size: 13px; font-family: var(--font-mono); margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); color: var(--text-dim); display: flex; justify-content: space-between; }
 
         @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOutRow { to { opacity: 0; transform: translateY(-4px); } }
@@ -370,7 +399,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-G</span>
-        <span class="nav-version">v6.0 ENGINE</span>
+        <span class="nav-version">v6.2 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -386,8 +415,8 @@
 <!-- ── API STATUS BAR ── -->
 <div id="api-status-bar">
     <span id="api-source-badge" class="api-badge sim">SIM</span>
-    <span id="api-status-text" style="color: var(--text-dim); font-size:10px;">Aguardando conexão com API...</span>
-    <span style="margin-left: auto; color: var(--text-dim); font-size:10px;" id="api-last-update">—</span>
+    <span id="api-status-text" style="color: var(--text-dim); font-size:13px;">Aguardando conexão com API...</span>
+    <span style="margin-left: auto; color: var(--text-dim); font-size:13px;" id="api-last-update">—</span>
 </div>
 
 <div id="popup-container"></div>
@@ -398,15 +427,24 @@
     <div class="config-block">
         <div class="block-label">Fonte de Dados</div>
         <div style="margin-top:6px;">
-            <div class="slider-header"><span>API Key (TwelveData):</span></div>
-            <input type="text" id="cfg-apikey"
-                placeholder="Cole sua chave aqui"
-                style="width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-main); padding:7px 10px; border-radius:4px; font-family:var(--font-mono); font-size:11px; margin-top:4px; outline:none;"
-                oninput="onApiKeyChange()">
-            <div style="font-size:10px; color:var(--text-dim); margin-top:5px; line-height:1.5;">
-                Sem chave: modo simulação ativo.<br>
-                Obtenha grátis em <span style="color:var(--blue);">twelvedata.com</span>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                <span id="apikey-status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0;"></span>
+                <span id="apikey-status-label" style="font-size:12px; color:var(--text-mid);">Chave configurada</span>
             </div>
+            <div id="apikey-override-wrap" style="display:none; margin-top:6px;">
+                <div style="font-size:13px; color:var(--text-dim); margin-bottom:4px;">Substituir API Key:</div>
+                <input type="password" id="cfg-apikey"
+                    placeholder="Cole nova chave aqui"
+                    style="width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-main); padding:8px 10px; border-radius:4px; font-family:var(--font-mono); font-size:12px; outline:none;"
+                    oninput="onApiKeyChange()">
+            </div>
+            <div id="apikey-limit-msg" style="display:none; margin-top:8px; padding:8px 10px; background:rgba(255,204,0,0.07); border:1px solid rgba(255,204,0,0.3); border-radius:4px; font-size:12px; color:var(--yellow); line-height:1.5;">
+                ⚠ Limite da API atingido.<br>
+                <span style="color:var(--text-mid);">Insira outra chave TwelveData ou aguarde reset.</span>
+            </div>
+            <button onclick="toggleApiKeyField()" style="margin-top:8px; width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-mid); padding:6px; border-radius:4px; cursor:pointer; font-family:var(--font-main); font-size:12px;">
+                Usar outra chave
+            </button>
         </div>
     </div>
 
@@ -420,6 +458,8 @@
             <label class="chk-label"><input type="checkbox" id="chk-popup" checked onchange="settings.popup = this.checked"> Alertas Pop-up</label>
             <label class="chk-label"><input type="checkbox" id="chk-fechamento" onchange="settings.confirmClose = this.checked"> Confirmar no Fechamento</label>
             <label class="chk-label"><input type="checkbox" id="chk-macd" checked onchange="settings.useMacd = this.checked"> Filtro MACD ativo</label>
+            <label class="chk-label"><input type="checkbox" id="chk-stoch" checked onchange="STATE.settings.useStoch = this.checked"> Filtro Stoch RSI ativo</label>
+            <label class="chk-label"><input type="checkbox" id="chk-mm200" checked onchange="STATE.settings.useMM200 = this.checked"> Filtro MM200 ativo</label>
         </div>
     </div>
 
@@ -438,8 +478,8 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <div class="block-label" style="margin-bottom:0">Pares Monitorados</div>
             <div style="display:flex; gap:8px;">
-                <span style="font-size:10px; color:var(--blue); cursor:pointer;" onclick="bulkAssets(true)">Todos</span>
-                <span style="font-size:10px; color:var(--text-dim); cursor:pointer;" onclick="bulkAssets(false)">Nenhum</span>
+                <span style="font-size:13px; color:var(--blue); cursor:pointer;" onclick="bulkAssets(true)">Todos</span>
+                <span style="font-size:13px; color:var(--text-dim); cursor:pointer;" onclick="bulkAssets(false)">Nenhum</span>
             </div>
         </div>
         <div class="grid-tags grid-3" id="asset-selector"></div>
@@ -448,7 +488,7 @@
     <div class="config-block">
         <div class="block-label">
             RSI
-            <span id="ind-lock-msg" style="color:var(--yellow); font-size:9px; display:none; margin-left:4px;">[BLOQUEADO]</span>
+            <span id="ind-lock-msg" style="color:var(--yellow); font-size:12px; display:none; margin-left:4px;">[BLOQUEADO]</span>
         </div>
         <div class="slider-row">
             <div class="slider-header"><span>Período:</span> <b id="val-rsi-p">14</b></div>
@@ -465,6 +505,37 @@
     </div>
 
     <div class="config-block">
+        <div class="block-label">Stochastic RSI</div>
+        <div class="slider-row">
+            <div class="slider-header"><span>Período RSI:</span> <b id="val-stoch-rsi">14</b></div>
+            <input type="range" class="ind-slider" id="cfg-stoch-rsi" min="5" max="30" value="14" oninput="syncVal(this,'val-stoch-rsi')">
+        </div>
+        <div class="slider-row">
+            <div class="slider-header"><span>Período Stoch:</span> <b id="val-stoch-k">14</b></div>
+            <input type="range" class="ind-slider" id="cfg-stoch-k" min="5" max="30" value="14" oninput="syncVal(this,'val-stoch-k')">
+        </div>
+        <div class="slider-row">
+            <div class="slider-header"><span>Sobrecompra:</span> <b id="val-stoch-up">80</b></div>
+            <input type="range" class="ind-slider" id="cfg-stoch-up" min="60" max="100" value="80" oninput="syncVal(this,'val-stoch-up')">
+        </div>
+        <div class="slider-row">
+            <div class="slider-header"><span>Sobrevenda:</span> <b id="val-stoch-dw">20</b></div>
+            <input type="range" class="ind-slider" id="cfg-stoch-dw" min="0" max="40" value="20" oninput="syncVal(this,'val-stoch-dw')">
+        </div>
+        <div id="stoch-status" style="margin-top:8px; font-size:13px; color:var(--text-dim); font-family:var(--font-mono);">—</div>
+    </div>
+
+    <div class="config-block">
+        <div class="block-label">Média Móvel 200</div>
+        <div style="margin-top:8px; font-size:13px; color:var(--text-dim); line-height:1.6;">
+            Filtra sinais contra a tendência macro.<br>
+            <span style="color:var(--green)">COMPRA</span> só acima da MM200<br>
+            <span style="color:var(--red)">VENDA</span> só abaixo da MM200
+        </div>
+        <div id="mm200-status" style="margin-top:10px; font-size:13px; font-family:var(--font-mono); color:var(--text-dim);">—</div>
+    </div>
+
+    <div class="config-block">
         <div class="block-label">MACD</div>
         <div class="slider-row">
             <div class="slider-header"><span>EMA Rápida:</span> <b id="val-macd-f">12</b></div>
@@ -478,7 +549,7 @@
             <div class="slider-header"><span>Sinal:</span> <b id="val-macd-sig">9</b></div>
             <input type="range" class="ind-slider" id="cfg-macd-sig" min="2" max="20" value="9" oninput="syncVal(this,'val-macd-sig')">
         </div>
-        <div id="macd-status" style="margin-top:8px; font-size:10px; color:var(--text-dim); font-family:var(--font-mono);">—</div>
+        <div id="macd-status" style="margin-top:8px; font-size:13px; color:var(--text-dim); font-family:var(--font-mono);">—</div>
     </div>
 </aside>
 
@@ -505,8 +576,9 @@
                     <th>TF</th>
                     <th>Vela</th>
                     <th>Preço</th>
-                    <th>RSI</th>
+                    <th>Stoch RSI</th>
                     <th>MACD</th>
+                    <th>MM200</th>
                     <th>Status</th>
                     <th>Fonte</th>
                 </tr>
@@ -541,9 +613,10 @@ const STATE = {
     params: {
         rsiPeriod: 14, rsiUp: 80, rsiDw: 20,
         macdFast: 12, macdSlow: 26, macdSignal: 9,
+        stochRsiPeriod: 14, stochKPeriod: 14, stochUp: 80, stochDw: 20,
     },
 
-    settings: { popup: true, confirmClose: false, useMacd: true },
+    settings: { popup: true, confirmClose: false, useMacd: true, useStoch: true, useMM200: true },
     isPaused: false,
     isMuted: false,
     stats: { total:0, buy:0, sell:0, conf:0, pend:0 },
@@ -652,7 +725,74 @@ function calculateMACD(prices, fastP, slowP, signalP) {
     };
 }
 
-// ── 3. INTEGRAÇÃO COM API REAL (TwelveData) ───────────────
+// ── 2b. STOCHASTIC RSI ─────────────────────────────────────
+
+/**
+ * Stochastic RSI — retorna valor K entre 0–100
+ * Mais sensível que o RSI puro: detecta reversões mais cedo
+ * Retorna { k, zone } onde zone: 'overbought' | 'oversold' | 'neutral'
+ */
+function calculateStochRSI(prices, rsiPeriod, stochPeriod) {
+    // Precisa de rsiPeriod + stochPeriod + 1 candles no mínimo
+    const minLen = rsiPeriod + stochPeriod + 1;
+    if (prices.length < minLen) return null;
+
+    // Gera série de valores RSI para os últimos stochPeriod+1 pontos
+    const rsiSeries = [];
+    for (let i = prices.length - stochPeriod - 1; i < prices.length; i++) {
+        const slice = prices.slice(0, i + 1);
+        rsiSeries.push(calculateRSI(slice, rsiPeriod));
+    }
+    if (rsiSeries.length < stochPeriod) return null;
+
+    const rsiWindow = rsiSeries.slice(-stochPeriod);
+    const minRSI = Math.min(...rsiWindow);
+    const maxRSI = Math.max(...rsiWindow);
+    const currentRSI = rsiSeries[rsiSeries.length - 1];
+
+    if (maxRSI === minRSI) return { k: 50, zone: 'neutral', rsi: currentRSI };
+
+    const k = parseFloat(((currentRSI - minRSI) / (maxRSI - minRSI) * 100).toFixed(1));
+    const zone = k >= 80 ? 'overbought' : k <= 20 ? 'oversold' : 'neutral';
+
+    return { k, zone, rsi: currentRSI };
+}
+
+// ── 2c. MÉDIA MÓVEL 200 ────────────────────────────────────
+
+/**
+ * Média Móvel Simples de 200 períodos (SMA200 / MM200)
+ * Retorna { value, trend, distance }
+ * trend: 'above' (alta) | 'below' (baixa) | 'near' (dentro de 0.1%)
+ */
+function calculateMM200(prices) {
+    const period = 200;
+    if (prices.length < period) {
+        // Se não tiver 200 candles ainda, usa o que tiver (mínimo 50)
+        if (prices.length < 50) return null;
+        const available = prices.slice(-prices.length);
+        const mm = available.reduce((a, b) => a + b, 0) / available.length;
+        const last = prices[prices.length - 1];
+        const dist = ((last - mm) / mm * 100);
+        return {
+            value: parseFloat(mm.toFixed(5)),
+            trend: Math.abs(dist) < 0.1 ? 'near' : dist > 0 ? 'above' : 'below',
+            distance: parseFloat(dist.toFixed(3)),
+            partial: true, // indica que ainda está construindo o histórico
+        };
+    }
+    const mm200 = prices.slice(-period).reduce((a, b) => a + b, 0) / period;
+    const last = prices[prices.length - 1];
+    const dist = ((last - mm200) / mm200 * 100);
+    return {
+        value: parseFloat(mm200.toFixed(5)),
+        trend: Math.abs(dist) < 0.1 ? 'near' : dist > 0 ? 'above' : 'below',
+        distance: parseFloat(dist.toFixed(3)),
+        partial: false,
+    };
+}
+
+
 
 // Mapa de símbolos OP245 → TwelveData
 const SYMBOL_MAP = {
@@ -662,35 +802,62 @@ const SYMBOL_MAP = {
     "XRP/USD": "XRP/USD",
 };
 
+// ── CHAVE PADRÃO (ofuscada por XOR simples) ───────────────
+// Não é criptografia forte — apenas evita exposição direta no código-fonte.
+// Objetivo: uso pessoal, não distribuição pública.
+const _AK_SEED = 0x4F;
+const _AK_ENC = [45,126,118,120,120,119,119,44,126,126,43,122,123,46,123,46,45,118,41,42,122,126,118,46,127,123,121,41,120,121,118,124];
+function _decodeKey() {
+    return _AK_ENC.map(b => String.fromCharCode(b ^ _AK_SEED)).join('');
+}
+
+function toggleApiKeyField() {
+    const wrap = document.getElementById('apikey-override-wrap');
+    wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+}
+
 function onApiKeyChange() {
     const key = document.getElementById('cfg-apikey').value.trim();
-    STATE.apiKey = key;
     if (key.length > 10) {
-        setApiStatus('connecting', 'Conectando à TwelveData...');
+        STATE.apiKey = key;
+        setApiStatus('connecting', 'Conectando com nova chave...');
         disconnectAllWS();
         setTimeout(() => connectRealData(), 500);
-    } else {
-        disconnectAllWS();
-        STATE.apiMode = 'simulation';
-        setApiStatus('sim', 'Modo Simulação — sem chave de API');
     }
+}
+
+function notifyApiLimit() {
+    // Mostra aviso de limite e abre campo para nova chave
+    document.getElementById('apikey-limit-msg').style.display = 'block';
+    document.getElementById('apikey-override-wrap').style.display = 'block';
+    document.getElementById('apikey-status-dot').style.cssText = 'width:8px;height:8px;border-radius:50%;background:var(--yellow);box-shadow:0 0 6px var(--yellow);flex-shrink:0;';
+    document.getElementById('apikey-status-label').textContent = 'Limite atingido';
+    document.getElementById('apikey-status-label').style.color = 'var(--yellow)';
+    setApiStatus('error', 'Limite da API atingido — insira outra chave no painel');
+    showErrorToast('Limite da API TwelveData atingido');
+    STATE.apiMode = 'simulation';
+    startSimulationEngine();
 }
 
 async function connectRealData() {
     if (!STATE.apiKey) return;
 
-    // Tenta buscar dados históricos REST primeiro para popular o buffer
     try {
         const symbol = SYMBOL_MAP["EUR/USD"];
         const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=100&apikey=${STATE.apiKey}`;
         const res = await fetch(url);
         const data = await res.json();
 
-        if (data.status === 'error' || data.code) {
-            throw new Error(data.message || 'Chave inválida ou limite atingido');
+        // Detecta limite de requisições
+        if (data.code === 429 || (data.message && data.message.toLowerCase().includes('limit'))) {
+            notifyApiLimit();
+            return;
         }
 
-        // Chave válida — popula histórico e conecta WebSocket
+        if (data.status === 'error' || data.code) {
+            throw new Error(data.message || 'Chave inválida ou erro na API');
+        }
+
         await populateHistoricalData();
         connectWebSocket();
         STATE.apiMode = 'live';
@@ -698,6 +865,11 @@ async function connectRealData() {
 
     } catch (err) {
         console.warn('[API] Falha na conexão:', err.message);
+        // Verifica se é erro de limite mesmo dentro do catch
+        if (err.message && err.message.toLowerCase().includes('limit')) {
+            notifyApiLimit();
+            return;
+        }
         STATE.apiMode = 'simulation';
         setApiStatus('error', `Erro API: ${err.message} — usando simulação`);
         showErrorToast(`API: ${err.message}`);
@@ -741,6 +913,11 @@ function connectWebSocket() {
     ws.onmessage = (evt) => {
         try {
             const msg = JSON.parse(evt.data);
+            // Detecta evento de limite de quota no WS
+            if (msg.event === 'error' && msg.message && msg.message.toLowerCase().includes('limit')) {
+                notifyApiLimit();
+                return;
+            }
             if (msg.event === 'price' && msg.symbol && msg.price) {
                 // Reverte mapeamento para nome interno
                 const internalKey = Object.keys(SYMBOL_MAP).find(k => SYMBOL_MAP[k] === msg.symbol) || msg.symbol;
@@ -812,36 +989,56 @@ function startSimulationEngine() {
  */
 function processTick(pair, price, source) {
     if (STATE.isPaused) return;
-    const p = STATE.params; // Lê do estado, não do DOM
+    const p = STATE.params;
+    const s = STATE.settings;
     const hist = STATE.marketData[pair];
     if (!hist || hist.length < p.rsiPeriod + 1) return;
 
-    const rsi = calculateRSI(hist, p.rsiPeriod);
-    const macd = calculateMACD(hist, p.macdFast, p.macdSlow, p.macdSignal);
+    // ── Calcula todos os indicadores ──
+    const stoch = calculateStochRSI(hist, p.stochRsiPeriod, p.stochKPeriod);
+    const macd  = calculateMACD(hist, p.macdFast, p.macdSlow, p.macdSignal);
+    const mm200 = calculateMM200(hist);
 
-    // Atualiza display MACD no sidebar
-    if (pair === Array.from(STATE.selectedAssets)[0] && macd) {
-        updateMacdDisplay(macd);
+    // Atualiza displays do sidebar para o ativo principal
+    if (pair === Array.from(STATE.selectedAssets)[0]) {
+        if (macd)  updateMacdDisplay(macd);
+        if (stoch) updateStochDisplay(pair, stoch);
+        if (mm200) updateMM200Display(pair, mm200, price);
     }
 
+    // ── GATILHO PRINCIPAL: Stochastic RSI ──
+    // (mais preciso que RSI puro — menos ruído)
     let signalType = null;
-    if (rsi >= p.rsiUp) signalType = 'VENDA';
-    else if (rsi <= p.rsiDw) signalType = 'COMPRA';
+    if (stoch) {
+        if (stoch.k >= p.stochUp) signalType = 'VENDA';
+        else if (stoch.k <= p.stochDw) signalType = 'COMPRA';
+    } else {
+        // Fallback para RSI simples enquanto Stoch não tem dados suficientes
+        const rsi = calculateRSI(hist, p.rsiPeriod);
+        if (rsi >= p.rsiUp) signalType = 'VENDA';
+        else if (rsi <= p.rsiDw) signalType = 'COMPRA';
+    }
     if (!signalType) return;
 
-    // FILTRO MACD — só dispara se MACD confirmar a direção
-    if (p.useMacd !== false && STATE.settings.useMacd && macd) {
-        if (signalType === 'COMPRA' && macd.trend !== 'bullish') return;
-        if (signalType === 'VENDA' && macd.trend !== 'bearish') return;
+    // ── FILTRO 1: MM200 — só opera a favor da tendência macro ──
+    if (s.useMM200 && mm200) {
+        if (signalType === 'COMPRA' && mm200.trend === 'below') return; // preço abaixo da MM200 = não compra
+        if (signalType === 'VENDA'  && mm200.trend === 'above') return; // preço acima da MM200 = não vende
     }
 
-    evaluateSignalTrigger(pair, signalType, price, rsi, macd, source);
+    // ── FILTRO 2: MACD — confirma momentum ──
+    if (s.useMacd && macd) {
+        if (signalType === 'COMPRA' && macd.trend !== 'bullish') return;
+        if (signalType === 'VENDA'  && macd.trend !== 'bearish') return;
+    }
+
+    const stochVal = stoch ? stoch.k : calculateRSI(hist, p.rsiPeriod);
+    evaluateSignalTrigger(pair, signalType, price, stochVal, macd, mm200, source);
 }
 
 // ── 5. LÓGICA DE SINAL COM LOCK FIFO ──────────────────────
 
-function evaluateSignalTrigger(pair, type, price, rsi, macd, source) {
-    // Limpeza de locks expirados (FIFO — não limpa tudo de uma vez)
+function evaluateSignalTrigger(pair, type, price, stochVal, macd, mm200, source) {
     const now = Date.now();
     STATE.lockedSignals.forEach((ts, key) => {
         if (now - ts > STATE.LOCK_TTL_MS) STATE.lockedSignals.delete(key);
@@ -851,7 +1048,6 @@ function evaluateSignalTrigger(pair, type, price, rsi, macd, source) {
     const velas = Array.from(STATE.selectedVelas);
     if (tfs.length === 0 || velas.length === 0) return;
 
-    // No modo real, usa M1 como TF principal; em sim, aleatoriza entre selecionados
     const tf = source === 'real' ? tfs[0] : tfs[Math.floor(Math.random() * tfs.length)];
     const velaType = velas[Math.floor(Math.random() * velas.length)];
     const candleTime = getCandleTime(tf, velaType);
@@ -860,10 +1056,10 @@ function evaluateSignalTrigger(pair, type, price, rsi, macd, source) {
     if (STATE.lockedSignals.has(signalKey)) return;
     STATE.lockedSignals.set(signalKey, now);
 
-    dispatchVisualSignal(pair, type, tf, velaType, candleTime, price.toFixed(5), rsi, macd, source);
+    dispatchVisualSignal(pair, type, tf, velaType, candleTime, price.toFixed(5), stochVal, macd, mm200, source);
 }
 
-function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, rsi, macd, source) {
+function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source) {
     const isConfirmed = !STATE.settings.confirmClose || velaType === 'Atual';
     STATE.rowCounter++;
     const rowId = `row-${STATE.rowCounter}`;
@@ -873,7 +1069,7 @@ function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, rsi, 
     }
 
     playSignalSound(type);
-    if (STATE.settings.popup) showPopup(pair, type, tf, velaType, candleTime, price, rsi, macd, source);
+    if (STATE.settings.popup) showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source);
 
     STATE.stats.total++;
     type === 'COMPRA' ? STATE.stats.buy++ : STATE.stats.sell++;
@@ -884,12 +1080,28 @@ function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, rsi, 
         ? '<span class="status-conf">✓ Conf.</span>'
         : '<span class="status-pend">⏳ Pend.</span>';
 
+    // Stoch RSI cell com mini gauge
+    const stochColor = stochVal >= 80 ? 'var(--red)' : stochVal <= 20 ? 'var(--green)' : 'var(--text-mid)';
+    const stochCell = `<span class="stoch-gauge">
+        <span class="stoch-bar-wrap"><span class="stoch-bar-fill" style="width:${stochVal}%; background:${stochColor}"></span></span>
+        <span style="color:${stochColor}">${stochVal}</span>
+    </span>`;
+
+    // MACD cell
     const macdCell = macd
         ? `<span class="macd-indicator">
             <span class="macd-bar" style="height:${Math.min(Math.abs(macd.histogram)*10000,14)+4}px; background:${macd.histogram>0?'var(--green)':'var(--red)'}"></span>
             <span style="color:${macd.trend==='bullish'?'var(--green)':macd.trend==='bearish'?'var(--red)':'var(--text-dim)'}">${macd.trend==='bullish'?'↑':macd.trend==='bearish'?'↓':'—'}</span>
            </span>`
         : '<span style="color:var(--text-dim)">—</span>';
+
+    // MM200 cell
+    let mm200Cell = '<span style="color:var(--text-dim)">—</span>';
+    if (mm200) {
+        const cls = mm200.trend === 'above' ? 'bull' : mm200.trend === 'below' ? 'bear' : 'neut';
+        const label = mm200.trend === 'above' ? '▲ ACIMA' : mm200.trend === 'below' ? '▼ ABAIXO' : '≈ NEAR';
+        mm200Cell = `<span class="badge-mm200 ${cls}">${label}</span>`;
+    }
 
     const srcBadge = `<span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE':'SIM'}</span>`;
     const displayVela = velaType === 'Atual' ? 'Atual' : candleTime;
@@ -901,16 +1113,15 @@ function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, rsi, 
         <td><span class="badge-tf">${tf}</span></td>
         <td style="font-family:var(--font-mono); color:white">${displayVela}</td>
         <td style="font-family:var(--font-mono); color:var(--text-mid)">${price}</td>
-        <td style="font-family:var(--font-mono); color:${type==='COMPRA'?'var(--green)':'var(--red)'}">${rsi}</td>
+        <td>${stochCell}</td>
         <td>${macdCell}</td>
+        <td>${mm200Cell}</td>
         <td class="status-cell">${statusBadge}</td>
         <td>${srcBadge}</td>
     </tr>`;
 
     const tbody = document.getElementById('signal-rows');
     tbody.insertAdjacentHTML('afterbegin', row);
-
-    // Mantém máximo de 30 linhas
     while (tbody.children.length > 30) tbody.lastElementChild.remove();
 }
 
@@ -945,7 +1156,7 @@ function checkPendingTimeouts() {
         if (isCanceled) {
             if (row) {
                 row.style.background = 'rgba(255,51,85,0.07)';
-                row.innerHTML = `<td colspan="10" style="text-align:center; color:var(--red); font-family:var(--font-mono); font-size:11px;">⚠ Sinal cancelado: RSI perdeu força (${sig.pair})</td>`;
+                row.innerHTML = `<td colspan="10" style="text-align:center; color:var(--red); font-family:var(--font-mono); font-size:13px;">⚠ Sinal cancelado: RSI perdeu força (${sig.pair})</td>`;
                 row.style.animation = 'fadeOutRow 2.5s forwards';
                 setTimeout(() => row?.remove(), 2500);
             }
@@ -997,6 +1208,8 @@ function syncVal(el, targetId) {
     const map = {
         'cfg-rsi-p':'rsiPeriod','cfg-rsi-up':'rsiUp','cfg-rsi-dw':'rsiDw',
         'cfg-macd-f':'macdFast','cfg-macd-s':'macdSlow','cfg-macd-sig':'macdSignal',
+        'cfg-stoch-rsi':'stochRsiPeriod','cfg-stoch-k':'stochKPeriod',
+        'cfg-stoch-up':'stochUp','cfg-stoch-dw':'stochDw',
     };
     if (map[el.id]) STATE.params[map[el.id]] = parseInt(el.value);
 }
@@ -1033,7 +1246,25 @@ function updateApiTimestamp() {
     }
 }
 
-function updateMacdDisplay(macd) {
+function updateStochDisplay(pair, stoch) {
+    const el = document.getElementById('stoch-status');
+    if (!el || !stoch) return;
+    const color = stoch.zone === 'overbought' ? 'var(--red)' : stoch.zone === 'oversold' ? 'var(--green)' : 'var(--text-dim)';
+    const zone = stoch.zone === 'overbought' ? 'SOBRECOMPRADO' : stoch.zone === 'oversold' ? 'SOBREVENDIDO' : 'NEUTRO';
+    el.innerHTML = `<span style="color:${color}">${pair} K: ${stoch.k} — ${zone}</span>`;
+}
+
+function updateMM200Display(pair, mm200, price) {
+    const el = document.getElementById('mm200-status');
+    if (!el || !mm200) return;
+    const color = mm200.trend === 'above' ? 'var(--green)' : mm200.trend === 'below' ? 'var(--red)' : 'var(--text-dim)';
+    const label = mm200.trend === 'above' ? '▲ Acima' : mm200.trend === 'below' ? '▼ Abaixo' : '≈ Próximo';
+    const partial = mm200.partial ? ' <span style="color:var(--yellow)">[parcial]</span>' : '';
+    el.innerHTML = `<span style="color:${color}">${pair} ${label} MM200${partial}</span><br>
+        <span style="color:var(--text-dim)">MM: ${mm200.value} | Dist: ${mm200.distance > 0 ? '+' : ''}${mm200.distance}%</span>`;
+}
+
+
     const el = document.getElementById('macd-status');
     if (!el || !macd) return;
     const color = macd.trend === 'bullish' ? 'var(--green)' : macd.trend === 'bearish' ? 'var(--red)' : 'var(--text-dim)';
@@ -1177,12 +1408,13 @@ function getCandleTime(tf, tipoVela) {
     return `${hrs.toString().padStart(2,'0')}:${startMin.toString().padStart(2,'0')}:00`;
 }
 
-function showPopup(pair, type, tf, velaType, candleTime, price, rsi, macd, source) {
+function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source) {
     const id = `popup-${STATE.rowCounter}`;
     const titleClass = type === 'COMPRA' ? 'txt-buy' : 'txt-sell';
     const bgClass = type === 'COMPRA' ? 'bg-buy' : 'bg-sell';
     const alertClass = type === 'COMPRA' ? 'buy-alert' : 'sell-alert';
     const macdInfo = macd ? `${macd.trend === 'bullish' ? '↑ Bull' : macd.trend === 'bearish' ? '↓ Bear' : '— Neu'}` : '—';
+    const mm200Info = mm200 ? `${mm200.trend === 'above' ? '▲ Acima' : mm200.trend === 'below' ? '▼ Abaixo' : '≈ Near'}` : '—';
     const html = `
         <div class="popup-alert ${alertClass}" id="${id}">
             <div class="popup-title ${titleClass}">
@@ -1192,12 +1424,13 @@ function showPopup(pair, type, tf, velaType, candleTime, price, rsi, macd, sourc
                 <div class="p-item"><span class="p-label">Ativo</span><span class="p-val">${pair}</span></div>
                 <div class="p-item"><span class="p-label">TF</span><span class="p-val">${tf}</span></div>
                 <div class="p-item"><span class="p-label">Preço</span><span class="p-val">${price}</span></div>
-                <div class="p-item"><span class="p-label">RSI</span><span class="p-val">${rsi}</span></div>
+                <div class="p-item"><span class="p-label">Stoch RSI</span><span class="p-val">${stochVal}</span></div>
                 <div class="p-item"><span class="p-label">MACD</span><span class="p-val" style="font-size:14px">${macdInfo}</span></div>
-                <div class="p-item"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
+                <div class="p-item"><span class="p-label">MM200</span><span class="p-val" style="font-size:14px">${mm200Info}</span></div>
+                <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-G v6.0</span>
+                <span>OP245-G v6.2</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -1207,10 +1440,8 @@ function showPopup(pair, type, tf, velaType, candleTime, price, rsi, macd, sourc
 
 // ── 9. INICIALIZAÇÃO ───────────────────────────────────────
 function init() {
-    // Mobile: sidebar escondida por padrão
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.add('hidden');
 
-    // Popula seletor de ativos
     document.getElementById('asset-selector').innerHTML = STATE.assets.map(a =>
         `<div class="tag-btn active" id="ast-${a.replace(/[\/\s]/g,'')}" onclick="toggleAsset('${a}')">${a}</div>`
     ).join('');
@@ -1218,16 +1449,16 @@ function init() {
     updateStatHeader();
     updatePresets();
 
-    // Timers
     setInterval(updateClock, 1000);
     setInterval(checkPendingTimeouts, 1000);
 
-    // Inicia simulação por padrão
-    STATE.apiMode = 'simulation';
-    setApiStatus('sim', 'Modo Simulação — cole uma API key TwelveData para dados reais');
-    startSimulationEngine();
+    // Conecta automaticamente com a chave padrão
+    STATE.apiKey = _decodeKey();
+    setApiStatus('connecting', 'Conectando à TwelveData...');
+    startSimulationEngine(); // Inicia simulação enquanto API conecta
+    setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-G v6.0] Engine iniciada.');
+    console.log('[OP245-G v6.2] Engine iniciada.');
 }
 
 init();
