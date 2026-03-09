@@ -1676,6 +1676,12 @@ _OP245-C v7 Engine_`;
 function init() {
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.add('hidden');
 
+    // Limpa entradas vazias do localStorage que podem causar conflito
+    try {
+        if (!localStorage.getItem('op245_tg_token')  || localStorage.getItem('op245_tg_token').length  < 10) localStorage.removeItem('op245_tg_token');
+        if (!localStorage.getItem('op245_tg_chatid') || localStorage.getItem('op245_tg_chatid').length < 3)  localStorage.removeItem('op245_tg_chatid');
+    } catch(e) {}
+
     document.getElementById('asset-selector').innerHTML = STATE.assets.map(a =>
         `<div class="tag-btn active" id="ast-${a.replace(/[\/\s]/g,'')}" onclick="toggleAsset('${a}')">${a}</div>`
     ).join('');
@@ -1701,10 +1707,13 @@ function init() {
         STATE.apiKey = _decodeKey();
     }
 
-    // Carrega configurações Telegram — usa pré-configurado ou localStorage se existir
+    // Carrega configurações Telegram — localStorage tem prioridade, mas só se não estiver vazio
     try {
-        const tgToken  = localStorage.getItem('op245_tg_token')  || STATE.telegram.token;
-        const tgChatId = localStorage.getItem('op245_tg_chatid') || STATE.telegram.chatId;
+        const savedToken  = localStorage.getItem('op245_tg_token');
+        const savedChatId = localStorage.getItem('op245_tg_chatid');
+        // Usa localStorage só se tiver valor real, senão usa o embutido no STATE
+        const tgToken  = (savedToken  && savedToken.length  > 10) ? savedToken  : STATE.telegram.token;
+        const tgChatId = (savedChatId && savedChatId.length > 3)  ? savedChatId : STATE.telegram.chatId;
         STATE.telegram.token  = tgToken;
         STATE.telegram.chatId = tgChatId;
         const tokenField  = document.getElementById('cfg-tg-token');
@@ -1712,7 +1721,6 @@ function init() {
         if (tokenField)  tokenField.value  = tgToken;
         if (chatIdField) chatIdField.value = tgChatId;
         if (tgToken && tgChatId) {
-            // Atualiza status visual como configurado mas inativo
             document.getElementById('tg-status-dot').style.cssText =
                 'width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--yellow);box-shadow:0 0 6px var(--yellow)';
             document.getElementById('tg-status-label').textContent = 'Configurado — ative quando precisar';
