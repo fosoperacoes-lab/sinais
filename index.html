@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OPERACIONAL 245 v6.2 | Engine</title>
+    <title>OP245-C Sinais v7 | Engine</title>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -62,7 +62,8 @@
         }
         .nav-logo {
             font-family: var(--font-mono); font-size: 17px;
-            color: var(--blue); letter-spacing: 3px; font-weight: 700;
+            color: #D97757; letter-spacing: 3px; font-weight: 700;
+            text-shadow: 0 0 14px rgba(217,119,87,0.45);
         }
         .nav-version {
             font-size: 12px; color: var(--text-mid);
@@ -398,8 +399,8 @@
 <nav class="top-nav">
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
-        <span class="nav-logo">OP245-G</span>
-        <span class="nav-version">v6.2 ENGINE</span>
+        <span class="nav-logo">OP245-C</span>
+        <span class="nav-version">SINAIS v7 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -449,7 +450,37 @@
     </div>
 
     <div class="config-block">
-        <div class="block-label">Filtro de Vela</div>
+        <div class="block-label">Telegram</div>
+        <div style="margin-top:6px;">
+            <div class="slider-header"><span>Bot Token:</span></div>
+            <input type="password" id="cfg-tg-token"
+                placeholder="123456:ABC-DEF..."
+                style="width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-main); padding:7px 10px; border-radius:4px; font-family:var(--font-mono); font-size:11px; margin-top:4px; outline:none;"
+                oninput="onTelegramChange()">
+            <div class="slider-header" style="margin-top:8px;"><span>Seu Chat ID:</span></div>
+            <input type="text" id="cfg-tg-chatid"
+                placeholder="Ex: 123456789"
+                style="width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-main); padding:7px 10px; border-radius:4px; font-family:var(--font-mono); font-size:11px; margin-top:4px; outline:none;"
+                oninput="onTelegramChange()">
+            <div style="margin-top:8px; display:flex; gap:6px; align-items:center;">
+                <span id="tg-status-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text-dim);flex-shrink:0;"></span>
+                <span id="tg-status-label" style="font-size:11px; color:var(--text-dim);">Não configurado</span>
+            </div>
+            <button onclick="testTelegram()" style="margin-top:8px; width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-mid); padding:6px; border-radius:4px; cursor:pointer; font-family:var(--font-main); font-size:12px; font-weight:600;">
+                📤 Testar Envio
+            </button>
+            <div class="chk-group" style="margin-top:8px;">
+                <label class="chk-label"><input type="checkbox" id="chk-tg-active" onchange="STATE.telegram.active = this.checked"> Enviar alertas ao Telegram</label>
+            </div>
+            <div style="font-size:10px; color:var(--text-dim); margin-top:6px; line-height:1.5;">
+                1. Crie bot no <span style="color:var(--blue)">@BotFather</span><br>
+                2. Adicione o bot ao seu grupo<br>
+                3. ID do grupo: use <span style="color:var(--blue)">@userinfobot</span> dentro do grupo
+            </div>
+        </div>
+    </div>
+
+
         <div class="grid-tags grid-2">
             <div class="tag-btn active" id="vela-atual" onclick="toggleVela('Atual')">Vela Atual</div>
             <div class="tag-btn active" id="vela-prox" onclick="toggleVela('Próxima')">Próxima Vela</div>
@@ -466,9 +497,9 @@
     <div class="config-block">
         <div class="block-label">Timeframe</div>
         <div class="grid-tags grid-4" style="margin-bottom:4px;">
-            <div class="tag-btn tf-btn active" id="tf-M1" onclick="toggleTF('M1')">M1</div>
+            <div class="tag-btn tf-btn" id="tf-M1" onclick="toggleTF('M1')">M1</div>
             <div class="tag-btn tf-btn active" id="tf-M5" onclick="toggleTF('M5')">M5</div>
-            <div class="tag-btn tf-btn" id="tf-M10" onclick="toggleTF('M10')">M10</div>
+            <div class="tag-btn tf-btn active" id="tf-M10" onclick="toggleTF('M10')">M10</div>
             <div class="tag-btn tf-btn" id="tf-M15" onclick="toggleTF('M15')">M15</div>
         </div>
         <div class="tag-btn" id="btn-todas-tf" onclick="toggleAllTF()" style="width:100%; display:block; padding:6px 0; margin-top:4px;">Todas</div>
@@ -590,7 +621,7 @@
 
 <script>
 // ============================================================
-//  OP245-G v6.0 — ENGINE CORE
+//  OP245-C v7 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -606,7 +637,7 @@
 const STATE = {
     assets: ["EUR/USD","GBP/USD","AUD/CAD","EUR/JPY","BTC/USD","ETH/USD","XAUUSD","SOL/USD","EUR/CAD","XRP/USD"],
     selectedAssets: new Set(["EUR/USD","GBP/USD","AUD/CAD","EUR/JPY","BTC/USD","ETH/USD","XAUUSD","SOL/USD","EUR/CAD","XRP/USD"]),
-    selectedTFs: new Set(['M1','M5']),
+    selectedTFs: new Set(['M5','M10']),
     selectedVelas: new Set(['Atual','Próxima']),
 
     // Parâmetros de indicadores — sincronizados apenas quando o usuário muda slider
@@ -617,6 +648,9 @@ const STATE = {
     },
 
     settings: { popup: true, confirmClose: false, useMacd: true, useStoch: true, useMM200: true },
+
+    // Telegram
+    telegram: { token: '', chatId: '', active: false },
     isPaused: false,
     isMuted: false,
     stats: { total:0, buy:0, sell:0, conf:0, pend:0 },
@@ -1112,6 +1146,7 @@ function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stoch
 
     playSignalSound(type);
     if (STATE.settings.popup) showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source);
+    sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200);
 
     STATE.stats.total++;
     type === 'COMPRA' ? STATE.stats.buy++ : STATE.stats.sell++;
@@ -1492,7 +1527,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-G v6.2</span>
+                <span>OP245-C v7</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -1500,7 +1535,92 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
     setTimeout(() => document.getElementById(id)?.remove(), 6000);
 }
 
-// ── 9. INICIALIZAÇÃO ───────────────────────────────────────
+// ── TELEGRAM ───────────────────────────────────────────────
+
+function onTelegramChange() {
+    const token  = document.getElementById('cfg-tg-token').value.trim();
+    const chatId = document.getElementById('cfg-tg-chatid').value.trim();
+    STATE.telegram.token  = token;
+    STATE.telegram.chatId = chatId;
+    // Salva no localStorage
+    try {
+        localStorage.setItem('op245_tg_token',  token);
+        localStorage.setItem('op245_tg_chatid', chatId);
+    } catch(e) {}
+    // Atualiza status visual
+    const hasBoth = token.length > 10 && chatId.length > 3;
+    document.getElementById('tg-status-dot').style.cssText =
+        `width:7px;height:7px;border-radius:50%;flex-shrink:0;background:${hasBoth ? 'var(--yellow)' : 'var(--text-dim)'};${hasBoth ? 'box-shadow:0 0 6px var(--yellow)' : ''}`;
+    document.getElementById('tg-status-label').textContent = hasBoth ? 'Configurado — teste o envio' : 'Preencha token e chat ID';
+    document.getElementById('tg-status-label').style.color = hasBoth ? 'var(--yellow)' : 'var(--text-dim)';
+}
+
+async function testTelegram() {
+    const { token, chatId } = STATE.telegram;
+    if (!token || !chatId) {
+        showErrorToast('Preencha Token e Chat ID do Telegram');
+        return;
+    }
+    const msg = `🤖 *OP245-C v7 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const ok = await sendTelegramMessage(msg);
+    if (ok) {
+        document.getElementById('tg-status-dot').style.cssText =
+            'width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--green);box-shadow:0 0 6px var(--green)';
+        document.getElementById('tg-status-label').textContent = '✓ Conectado e funcionando';
+        document.getElementById('tg-status-label').style.color = 'var(--green)';
+        document.getElementById('chk-tg-active').checked = true;
+        STATE.telegram.active = true;
+    } else {
+        showErrorToast('Falha no envio — verifique Token e Chat ID');
+    }
+}
+
+async function sendTelegramMessage(text) {
+    const { token, chatId } = STATE.telegram;
+    if (!token || !chatId) return false;
+    try {
+        const url = `https://api.telegram.org/bot${token}/sendMessage`;
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' }),
+        });
+        const data = await res.json();
+        return data.ok === true;
+    } catch(e) {
+        console.warn('[Telegram] Erro ao enviar:', e.message);
+        return false;
+    }
+}
+
+function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200) {
+    if (!STATE.telegram.active) return;
+
+    const emoji      = type === 'COMPRA' ? '🟢' : '🔴';
+    const direcao    = type === 'COMPRA' ? '📈 COMPRA' : '📉 VENDA';
+    const vela       = velaType === 'Atual' ? 'Vela Atual' : `Próxima: ${candleTime}`;
+    const macdTxt    = macd  ? (macd.trend  === 'bullish' ? '↑ Bullish' : macd.trend === 'bearish' ? '↓ Bearish' : '— Neutro') : '—';
+    const mm200Txt   = mm200 ? (mm200.trend === 'above'   ? '▲ Acima'   : mm200.trend === 'below'  ? '▼ Abaixo'  : '≈ Near')   : '—';
+
+    const msg =
+`${emoji} *SINAL ${direcao}*
+
+📊 *Ativo:* ${pair}
+⏱ *Timeframe:* ${tf}
+💰 *Preço:* ${price}
+🕯 *Entrada:* ${vela}
+
+📉 *Stoch RSI:* ${stochVal}
+📊 *MACD:* ${macdTxt}
+📈 *MM200:* ${mm200Txt}
+
+🕐 _${new Date().toLocaleTimeString('pt-BR')}_
+_OP245-C v7 Engine_`;
+
+    sendTelegramMessage(msg);
+}
+
+
 function init() {
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.add('hidden');
 
@@ -1527,11 +1647,20 @@ function init() {
         STATE.apiKey = _decodeKey();
     }
 
+    // Carrega configurações Telegram salvas
+    try {
+        const tgToken  = localStorage.getItem('op245_tg_token')  || '';
+        const tgChatId = localStorage.getItem('op245_tg_chatid') || '';
+        if (tgToken)  { STATE.telegram.token  = tgToken;  document.getElementById('cfg-tg-token').value  = tgToken;  }
+        if (tgChatId) { STATE.telegram.chatId = tgChatId; document.getElementById('cfg-tg-chatid').value = tgChatId; }
+        if (tgToken && tgChatId) onTelegramChange();
+    } catch(e) {}
+
     setApiStatus('connecting', 'Conectando à TwelveData...');
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-G v6.2] Engine iniciada.');
+    console.log('[OP245-C v7] Engine iniciada.');
 }
 
 init();
