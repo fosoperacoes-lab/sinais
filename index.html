@@ -1266,6 +1266,7 @@ function updateMM200Display(pair, mm200, price) {
 }
 
 
+function updateMacdDisplay(macd) {
     const el = document.getElementById('macd-status');
     if (!el || !macd) return;
     const color = macd.trend === 'bullish' ? 'var(--green)' : macd.trend === 'bearish' ? 'var(--red)' : 'var(--text-dim)';
