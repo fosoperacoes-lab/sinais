@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v8.5 | Engine</title>
+    <title>OP245-C Sinais v8.6 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -310,6 +310,14 @@
         .badge-src.real { color: var(--green); border: 1px solid var(--green-dim); background: rgba(0,255,136,0.06); }
         .badge-src.sim { color: var(--yellow); border: 1px solid var(--yellow); background: rgba(255,204,0,0.06); }
 
+        /* ── RESULTADO WIN/LOSS ── */
+        .badge-win  { font-size:12px; padding:2px 8px; border-radius:3px; font-family:var(--font-mono); font-weight:bold;
+                      color:var(--green); border:1px solid var(--green-dim); background:rgba(0,255,136,0.08); letter-spacing:1px; }
+        .badge-loss { font-size:12px; padding:2px 8px; border-radius:3px; font-family:var(--font-mono); font-weight:bold;
+                      color:var(--red); border:1px solid var(--red-dim); background:rgba(255,51,85,0.08); letter-spacing:1px; }
+        .badge-open { font-size:12px; padding:2px 8px; border-radius:3px; font-family:var(--font-mono);
+                      color:var(--text-dim); border:1px solid var(--border2); }
+
         /* ── MM200 TREND BADGE ── */
         .badge-mm200 {
             font-size: 13px; padding: 2px 8px; border-radius: 3px;
@@ -418,7 +426,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v8.5 ENGINE</span>
+        <span class="nav-version">SINAIS v8.6 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -667,6 +675,7 @@
                     <th>MM200</th>
                     <th>Status</th>
                     <th>Fonte</th>
+                    <th>Resultado</th>
                 </tr>
             </thead>
             <tbody id="signal-rows"></tbody>
@@ -703,7 +712,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v8.5 — ENGINE CORE
+//  OP245-C v8.6 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -736,6 +745,7 @@ const STATE = {
 
     // Log de sinais da sessão
     signalLog: [],
+    pendingResultsList: [],  // sinais aguardando apuração de Win/Loss
     isPaused: false,
     isMuted: false,
     stats: { total:0, buy:0, sell:0, conf:0, pend:0 },
@@ -1418,7 +1428,15 @@ function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stoch
         <td>${mm200Cell}</td>
         <td class="status-cell">${statusBadge}</td>
         <td>${srcBadge}</td>
+        <td class="result-cell"><span class="badge-open">—</span></td>
     </tr>`;
+
+    // Registra para apuração de resultado no fechamento da vela
+    const entryPrice = parseFloat(price);
+    const tfMin      = parseInt(tf.replace('M', ''));
+    const parts      = candleTime !== 'Atual' ? candleTime.split(':') : new Date().toLocaleTimeString().split(':');
+    const closeSec   = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]) + tfMin * 60;
+    STATE.pendingResultsList.push({ rowId, pair, type, entryPrice, closeSec, tf });
 
     const tbody = document.getElementById('signal-rows');
     tbody.insertAdjacentHTML('afterbegin', row);
@@ -1530,7 +1548,58 @@ function _expireSignal(sig, i) {
     STATE.pendingSignalsList.splice(i, 1);
 }
 
-// ── 7. ÁUDIO REUTILIZÁVEL (sem memory leak) ───────────────
+// ── APURAÇÃO DE RESULTADO WIN/LOSS ────────────────────────
+
+function checkResults() {
+    if (STATE.pendingResultsList.length === 0) return;
+
+    const now    = new Date();
+    const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+    for (let i = STATE.pendingResultsList.length - 1; i >= 0; i--) {
+        const r = STATE.pendingResultsList[i];
+
+        // Ainda não chegou o fechamento da vela
+        let diffSec = r.closeSec - nowSec;
+        // Trata virada de meia-noite
+        if (diffSec < -43200) diffSec += 86400;
+        if (diffSec > 0) continue;
+
+        // Busca preço atual do par
+        const hist = STATE.marketData[r.pair];
+        if (!hist || hist.length === 0) {
+            STATE.pendingResultsList.splice(i, 1);
+            continue;
+        }
+
+        const closePrice = hist[hist.length - 1];
+        const win = r.type === 'COMPRA'
+            ? closePrice > r.entryPrice
+            : closePrice < r.entryPrice;
+
+        const row = document.getElementById(r.rowId);
+        if (row) {
+            const cell = row.querySelector('.result-cell');
+            if (cell) {
+                cell.innerHTML = win
+                    ? '<span class="badge-win">✓ WIN</span>'
+                    : '<span class="badge-loss">✗ LOSS</span>';
+            }
+            // Destaca a linha levemente
+            row.style.background = win
+                ? 'rgba(0,255,136,0.03)'
+                : 'rgba(255,51,85,0.04)';
+        }
+
+        // Atualiza stats
+        if (!STATE.stats.wins)   STATE.stats.wins = 0;
+        if (!STATE.stats.losses) STATE.stats.losses = 0;
+        win ? STATE.stats.wins++ : STATE.stats.losses++;
+
+        STATE.pendingResultsList.splice(i, 1);
+    }
+}
+
 
 let audioCtx = null;
 function getAudioCtx() {
@@ -1808,7 +1877,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v8.5</span>
+                <span>OP245-C v8.6</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -1842,7 +1911,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v8.5 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v8.6 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -1895,7 +1964,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v8.5 Engine_`;
+_OP245-C v8.6 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -1992,6 +2061,7 @@ function init() {
 
     setInterval(updateClock, 1000);
     setInterval(checkPendingTimeouts, 1000);
+    setInterval(checkResults, 1000);
     setInterval(updateOTCStatusBar, 30000);
     setInterval(updateMarketStatusPanel, 60000); // atualiza painel a cada 1min
     updateOTCStatusBar();
@@ -2037,7 +2107,7 @@ function init() {
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v8.5] Engine iniciada.');
+    console.log('[OP245-C v8.6] Engine iniciada.');
 }
 
 init();
