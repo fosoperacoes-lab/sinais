@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v9.2 | Engine</title>
+    <title>OP245-C Sinais v9.3 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -438,7 +438,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v9.2 ENGINE</span>
+        <span class="nav-version">SINAIS v9.3 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -821,7 +821,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v9.2 — ENGINE CORE
+//  OP245-C v9.3 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -1143,11 +1143,12 @@ async function connectRealData() {
 }
 
 async function populateHistoricalData() {
+    // 500 velas de 5min = ~41h de histórico — garante MM200 real com folga
     const selected = Array.from(STATE.selectedAssets).slice(0, 3);
     for (const asset of selected) {
         try {
             const symbol = SYMBOL_MAP[asset] || asset;
-            const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=5min&outputsize=150&apikey=${STATE.apiKey}`;
+            const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=5min&outputsize=500&apikey=${STATE.apiKey}`;
             const res  = await fetch(url);
             const data = await res.json();
             if (data.values && Array.isArray(data.values)) {
@@ -1159,11 +1160,13 @@ async function populateHistoricalData() {
                     t: new Date(c.datetime).getTime(),
                 }));
                 STATE.marketData[asset] = candles;
-                console.log(`[API] OHLC carregado para ${asset}: ${candles.length} velas de 5min`);
+                console.log(`[API] OHLC carregado para ${asset}: ${candles.length} velas de 5min (~${Math.round(candles.length*5/60)}h)`);
             }
         } catch (e) {
             console.warn(`[API] Falha ao buscar histórico de ${asset}:`, e.message);
         }
+        // Pausa 300ms entre requests para não esgotar rate limit
+        await new Promise(r => setTimeout(r, 300));
     }
 }
 
@@ -1496,11 +1499,13 @@ function processTick(pair, price, source) {
         const stochVal = stoch ? stoch.k : calculateRSI(cls, p.rsiPeriod);
 
         // ── LOCK por Ativo+TF ──
-        // Uma única entrada por par/TF por vela. O lock dura até a vela fechar.
-        const now = Date.now();
-        const tfMin = parseInt(tf.replace('M','')) * 60 * 1000; // duração da vela em ms
+        // Mínimo: 1 vela completa. Impede sinais em cascata no mesmo par.
+        const now   = Date.now();
+        const tfMin = parseInt(tf.replace('M','')) * 60 * 1000;
+        // TTL = duração da vela + 10s de margem (garante vela completamente fechada)
+        const lockTTL = tfMin + 10000;
         STATE.lockedSignals.forEach((entry, key) => {
-            if (now - entry.ts > tfMin) STATE.lockedSignals.delete(key);
+            if (now - entry.ts > lockTTL) STATE.lockedSignals.delete(key);
         });
 
         const velas = Array.from(STATE.selectedVelas);
@@ -1533,10 +1538,10 @@ function processTick(pair, price, source) {
 
 function evaluateSignalTrigger(pair, type, price, stochVal, macd, mm200, source) {
     const now = Date.now();
-    const nowTfMin = 5 * 60 * 1000; // fallback 5min
+    const nowTfMin = 5 * 60 * 1000 + 10000; // fallback M5 + margem
     STATE.lockedSignals.forEach((entry, key) => {
-        const keyTf = key.split('_')[1];
-        const tfMs = keyTf ? parseInt(keyTf.replace('M','')) * 60 * 1000 : nowTfMin;
+        const keyTf  = key.split('_')[1];
+        const tfMs   = keyTf ? parseInt(keyTf.replace('M','')) * 60 * 1000 + 10000 : nowTfMin;
         if (now - entry.ts > tfMs) STATE.lockedSignals.delete(key);
     });
 
@@ -1633,8 +1638,10 @@ function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stoch
     // Registra para apuração de resultado no fechamento da vela
     const entryPrice = parseFloat(price);
     const tfMin      = parseInt(tf.replace('M', ''));
-    const parts      = candleTime !== 'Atual' ? candleTime.split(':') : new Date().toLocaleTimeString().split(':');
-    const closeSec   = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]) + tfMin * 60;
+    const parts      = candleTime !== 'Atual' ? candleTime.split(':') : new Date().toLocaleTimeString('pt-BR').split(':');
+    // closeSec = abertura da vela alvo + duração do TF + 5s de buffer (tick de confirmação)
+    const openSec  = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2] || 0);
+    const closeSec = openSec + tfMin * 60 + 5;
     STATE.pendingResultsList.push({ rowId, pair, type, entryPrice, closeSec, tf });
 
     const tbody = document.getElementById('signal-rows');
@@ -2082,7 +2089,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v9.2</span>
+                <span>OP245-C v9.3</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -2116,7 +2123,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v9.2 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v9.3 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -2169,7 +2176,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v9.2 Engine_`;
+_OP245-C v9.3 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -2198,7 +2205,7 @@ ${direcao}
 📐 *Variação:* ${sinal}${variacao}%
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v9.2 Engine_`;
+_OP245-C v9.3 Engine_`;
 
     try {
         const encoded = encodeURIComponent(msg);
@@ -2765,7 +2772,7 @@ function init() {
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v9.2] Engine iniciada.');
+    console.log('[OP245-C v9.3] Engine iniciada.');
 }
 
 init();
