@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v7.9 | Engine</title>
+    <title>OP245-C Sinais v8.4 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -418,7 +418,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v7.9 ENGINE</span>
+        <span class="nav-version">SINAIS v8.4 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -501,11 +501,40 @@
         </div>
         <div class="chk-group">
             <label class="chk-label"><input type="checkbox" id="chk-popup" checked onchange="STATE.settings.popup = this.checked"> Alertas Pop-up</label>
-            <label class="chk-label"><input type="checkbox" id="chk-fechamento" onchange="STATE.settings.confirmClose = this.checked"> Confirmar no Fechamento</label>
             <label class="chk-label"><input type="checkbox" id="chk-macd" checked onchange="STATE.settings.useMacd = this.checked"> Filtro MACD ativo</label>
             <label class="chk-label"><input type="checkbox" id="chk-stoch" checked onchange="STATE.settings.useStoch = this.checked"> Filtro Stoch RSI ativo</label>
             <label class="chk-label"><input type="checkbox" id="chk-mm200" checked onchange="STATE.settings.useMM200 = this.checked"> Filtro MM200 ativo</label>
             <label class="chk-label"><input type="checkbox" id="chk-ignore-otc" checked onchange="STATE.settings.ignoreOTC = this.checked"> Ignorar OTC</label>
+        </div>
+
+        <div style="margin-top:10px;">
+            <div class="block-label" style="margin-bottom:6px; font-size:11px;">Modo de Confirmação</div>
+            <div style="display:flex; flex-direction:column; gap:5px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:4px; border:1px solid var(--border2); background:var(--bg-card);">
+                    <input type="radio" name="confirm-mode" value="none" checked onchange="setConfirmMode(this.value)"
+                        style="accent-color:var(--blue);">
+                    <span style="font-size:12px; color:var(--text-mid); font-family:var(--font-mono);">
+                        <b style="color:var(--text-main)">Sem confirmação</b>
+                        <span style="color:var(--text-dim)"> — sinal imediato ✓</span>
+                    </span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:4px; border:1px solid var(--border2); background:var(--bg-card);">
+                    <input type="radio" name="confirm-mode" value="open" onchange="setConfirmMode(this.value)"
+                        style="accent-color:var(--blue);">
+                    <span style="font-size:12px; color:var(--text-mid); font-family:var(--font-mono);">
+                        <b style="color:var(--text-main)">Na abertura</b>
+                        <span style="color:var(--text-dim)"> — entra quando a vela abre</span>
+                    </span>
+                </label>
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:4px; border:1px solid var(--border2); background:var(--bg-card);">
+                    <input type="radio" name="confirm-mode" value="tick" onchange="setConfirmMode(this.value)"
+                        style="accent-color:var(--blue);">
+                    <span style="font-size:12px; color:var(--text-mid); font-family:var(--font-mono);">
+                        <b style="color:var(--text-main)">Próximo tick</b>
+                        <span style="color:var(--text-dim)"> — confirma se Stoch ainda na zona</span>
+                    </span>
+                </label>
+            </div>
         </div>
         <div id="otc-status-bar" style="display:none; margin-top:10px; padding:8px 10px; border-radius:4px; background:rgba(255,204,0,0.07); border:1px solid rgba(255,204,0,0.3);">
             <div style="font-size:11px; color:var(--yellow); font-weight:700; margin-bottom:4px;">⚠ MERCADO OTC ATIVO</div>
@@ -665,7 +694,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v7.9 — ENGINE CORE
+//  OP245-C v8.4 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -691,7 +720,7 @@ const STATE = {
         stochRsiPeriod: 14, stochKPeriod: 14, stochUp: 80, stochDw: 20,
     },
 
-    settings: { popup: true, confirmClose: false, useMacd: true, useStoch: true, useMM200: true, ignoreOTC: true },
+    settings: { popup: true, confirmClose: false, confirmMode: 'none', useMacd: true, useStoch: true, useMM200: true, ignoreOTC: true },
 
     // Telegram
     telegram: { token: '8727416448:AAFEzWkfi0BUr1T0lX8cki8oK8C77qMiGFU', chatId: '-5198350830', active: false },
@@ -1320,7 +1349,7 @@ function evaluateSignalTrigger(pair, type, price, stochVal, macd, mm200, source)
 }
 
 function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source) {
-    const isConfirmed = !STATE.settings.confirmClose || velaType === 'Atual';
+    const isConfirmed = STATE.settings.confirmMode === 'none';
     STATE.rowCounter++;
     const rowId = `row-${STATE.rowCounter}`;
 
@@ -1389,49 +1418,107 @@ function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stoch
 
 // ── 6. TIMEOUT DE PENDENTES ────────────────────────────────
 
+function setConfirmMode(mode) {
+    STATE.settings.confirmMode  = mode;
+    STATE.settings.confirmClose = mode !== 'none';
+}
+
 function checkPendingTimeouts() {
-    const now = new Date();
+    const mode   = STATE.settings.confirmMode;
+    if (mode === 'none') return; // sem confirmação — nada a fazer
+
+    const now    = new Date();
+    const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
     for (let i = STATE.pendingSignalsList.length - 1; i >= 0; i--) {
-        const sig = STATE.pendingSignalsList[i];
+        const sig    = STATE.pendingSignalsList[i];
         if (sig.checked) continue;
 
-        const parts = sig.candleTime.split(':');
-        const targetDate = new Date();
-        targetDate.setHours(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]), 0);
-        let diffSec = (targetDate.getTime() - now.getTime()) / 1000;
-        if (diffSec < -3600) {
-            targetDate.setDate(targetDate.getDate() + 1);
-            diffSec = (targetDate.getTime() - now.getTime()) / 1000;
-        }
+        const tfMin  = parseInt(sig.tf.replace('M', ''));
+        const parts  = sig.candleTime.split(':');
+        const sigSec = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
 
-        const threshold = sig.tf === 'M1' ? 5 : sig.tf === 'M5' ? 10 : 30;
-        if (diffSec > threshold || diffSec <= 0) continue;
+        // ── MODO: Próximo tick ──────────────────────────────
+        if (mode === 'tick') {
+            if (!sig.firstTickMs) { sig.firstTickMs = Date.now(); continue; }
+            if (Date.now() - sig.firstTickMs < 1500) continue; // aguarda novo tick
 
-        sig.checked = true;
-        const hist = STATE.marketData[sig.pair];
-        if (!hist) { STATE.pendingSignalsList.splice(i, 1); continue; }
-
-        const currentRSI = calculateRSI(hist, STATE.params.rsiPeriod);
-        const isCanceled = (sig.type === 'VENDA' && currentRSI < 75) || (sig.type === 'COMPRA' && currentRSI > 25);
-        const row = document.getElementById(sig.id);
-
-        if (isCanceled) {
-            if (row) {
-                row.style.background = 'rgba(255,51,85,0.07)';
-                row.innerHTML = `<td colspan="10" style="text-align:center; color:var(--red); font-family:var(--font-mono); font-size:13px;">⚠ Sinal cancelado: RSI perdeu força (${sig.pair})</td>`;
-                row.style.animation = 'fadeOutRow 2.5s forwards';
-                setTimeout(() => row?.remove(), 2500);
+            // Expira após 1 TF completo
+            const ageSec = nowSec - sigSec;
+            if (ageSec > tfMin * 60 && ageSec < 43200) {
+                _expireSignal(sig, i); continue;
             }
-            STATE.stats.total--; STATE.stats.pend--;
-            if (sig.type === 'COMPRA') STATE.stats.buy--; else STATE.stats.sell--;
-        } else {
-            if (row) row.querySelector('.status-cell').innerHTML = '<span class="status-conf">✓ Conf.</span>';
-            STATE.stats.pend--; STATE.stats.conf++;
+
+            const hist = STATE.marketData[sig.pair];
+            if (!hist || hist.length < STATE.params.stochRsiPeriod + STATE.params.stochKPeriod) continue;
+
+            sig.checked = true;
+            _resolveSignal(sig, i, hist);
+            continue;
         }
 
-        updateStatsUI();
-        STATE.pendingSignalsList.splice(i, 1);
+        // ── MODO: Na abertura da vela ───────────────────────
+        if (mode === 'open') {
+            const diffSec = sigSec - nowSec;
+            if (diffSec > 0) continue; // ainda não abriu
+            if (diffSec < -(tfMin * 60)) { _expireSignal(sig, i); continue; }
+
+            const hist = STATE.marketData[sig.pair];
+            if (!hist || hist.length < STATE.params.stochRsiPeriod + STATE.params.stochKPeriod) {
+                sig.checked = true;
+                _confirmSignal(sig, i); continue; // sem dados → confirma
+            }
+
+            sig.checked = true;
+            _resolveSignal(sig, i, hist);
+            continue;
+        }
     }
+}
+
+function _resolveSignal(sig, i, hist) {
+    const p     = STATE.params;
+    const stoch = calculateStochRSI(hist, p.stochRsiPeriod, p.stochKPeriod);
+    const confirmed = stoch
+        ? (sig.type === 'COMPRA' ? stoch.k <= p.stochUp : stoch.k >= p.stochDw)
+        : true;
+    confirmed ? _confirmSignal(sig, i) : _cancelSignal(sig, i);
+}
+
+function _confirmSignal(sig, i) {
+    const row = document.getElementById(sig.id);
+    if (row) row.querySelector('.status-cell').innerHTML = '<span class="status-conf">✓ Conf.</span>';
+    STATE.stats.pend--; STATE.stats.conf++;
+    updateStatsUI();
+    STATE.pendingSignalsList.splice(i, 1);
+}
+
+function _cancelSignal(sig, i) {
+    const row = document.getElementById(sig.id);
+    if (row) {
+        row.style.background = 'rgba(255,51,85,0.07)';
+        row.innerHTML = `<td colspan="11" style="text-align:center; color:var(--red);
+            font-family:var(--font-mono); font-size:12px; padding:8px">
+            ⚠ Cancelado — Stoch RSI reverteu (${sig.pair} ${sig.tf})
+        </td>`;
+        setTimeout(() => row?.remove(), 3000);
+    }
+    STATE.stats.total--; STATE.stats.pend--;
+    if (sig.type === 'COMPRA') STATE.stats.buy--; else STATE.stats.sell--;
+    updateStatsUI();
+    STATE.pendingSignalsList.splice(i, 1);
+}
+
+function _expireSignal(sig, i) {
+    const row = document.getElementById(sig.id);
+    if (row) {
+        row.style.opacity = '0.35';
+        row.querySelector('.status-cell').innerHTML =
+            '<span style="color:var(--text-dim);font-size:11px">✗ Expirado</span>';
+    }
+    STATE.stats.pend--;
+    updateStatsUI();
+    STATE.pendingSignalsList.splice(i, 1);
 }
 
 // ── 7. ÁUDIO REUTILIZÁVEL (sem memory leak) ───────────────
@@ -1712,7 +1799,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v7.9</span>
+                <span>OP245-C v8.4</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -1746,7 +1833,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v7.9 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v8.4 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -1799,7 +1886,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v7.9 Engine_`;
+_OP245-C v8.4 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -1941,7 +2028,7 @@ function init() {
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v7.9] Engine iniciada.');
+    console.log('[OP245-C v8.4] Engine iniciada.');
 }
 
 init();
