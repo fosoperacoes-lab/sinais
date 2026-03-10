@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v8.6 | Engine</title>
+    <title>OP245-C Sinais v8.7 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -318,7 +318,19 @@
         .badge-open { font-size:12px; padding:2px 8px; border-radius:3px; font-family:var(--font-mono);
                       color:var(--text-dim); border:1px solid var(--border2); }
 
-        /* ── MM200 TREND BADGE ── */
+        /* ── TOGGLE SWITCH ── */
+        .toggle-switch { position:relative; display:inline-block; width:36px; height:20px; flex-shrink:0; }
+        .toggle-switch input { opacity:0; width:0; height:0; }
+        .toggle-slider { position:absolute; cursor:pointer; inset:0; background:var(--border2); border-radius:20px; transition:.3s; }
+        .toggle-slider::before { content:''; position:absolute; width:14px; height:14px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
+        .toggle-switch input:checked + .toggle-slider { background:var(--blue); }
+        .toggle-switch input:checked + .toggle-slider::before { transform:translateX(16px); }
+
+        /* ── ADVANCED FILTER ROW ── */
+        .adv-filter-row { padding:8px 10px; border-radius:4px; border:1px solid var(--border2); background:rgba(255,255,255,0.02); }
+        .adv-filter-row.active { border-color:var(--blue); background:rgba(0,120,255,0.04); }
+
+
         .badge-mm200 {
             font-size: 13px; padding: 2px 8px; border-radius: 3px;
             font-family: var(--font-mono); font-weight: bold; letter-spacing: 1px;
@@ -426,7 +438,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v8.6 ENGINE</span>
+        <span class="nav-version">SINAIS v8.7 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -564,7 +576,94 @@
         </div>
     </div>
 
-    <!-- 6. PARES MONITORADOS -->
+    <!-- 6. FILTROS AVANÇADOS -->
+    <div class="config-block">
+        <div class="block-label">Filtros Avançados</div>
+
+        <!-- Liquidez -->
+        <div class="adv-filter-row" id="adf-liquidity">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:12px; color:var(--text-main); font-weight:600;">🕐 Horário de Liquidez</div>
+                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">Londres 08-17h · Nova York 13-22h BRT</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="chk-liquidity" onchange="STATE.settings.useLiquidity=this.checked; updateAdvFilterUI()">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div id="liquidity-status" style="margin-top:6px; font-size:11px; font-family:var(--font-mono); color:var(--text-dim);">—</div>
+        </div>
+
+        <!-- Notícias -->
+        <div class="adv-filter-row" id="adf-news" style="margin-top:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:12px; color:var(--text-main); font-weight:600;">📰 Filtro de Notícias</div>
+                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">Bloqueia ±30min de eventos de alto impacto</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="chk-news" onchange="STATE.settings.useNews=this.checked; if(this.checked) fetchEconomicNews();">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div id="news-status" style="margin-top:6px; font-size:11px; font-family:var(--font-mono); color:var(--text-dim);">—</div>
+        </div>
+
+        <!-- Multi-TF -->
+        <div class="adv-filter-row" id="adf-multitf" style="margin-top:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:12px; color:var(--text-main); font-weight:600;">📊 Confluência Multi-TF</div>
+                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">Sinal só dispara se M5 e M10 concordam</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="chk-multitf" onchange="STATE.settings.useMultiTF=this.checked;">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div id="multitf-status" style="margin-top:6px; font-size:11px; font-family:var(--font-mono); color:var(--text-dim);">—</div>
+        </div>
+
+        <!-- Volatilidade ATR -->
+        <div class="adv-filter-row" id="adf-volatility" style="margin-top:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:12px; color:var(--text-main); font-weight:600;">⚡ Filtro de Volatilidade</div>
+                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">Bloqueia ATR acima do normal</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="chk-volatility" onchange="STATE.settings.useVolatility=this.checked;">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+                <span style="font-size:11px; color:var(--text-dim);">Limite ATR:</span>
+                <input type="range" min="1" max="3" step="0.1" value="1.5" id="cfg-atr-mult"
+                    style="flex:1; accent-color:var(--blue);"
+                    oninput="STATE.settings.atrMultiplier=+this.value; document.getElementById('val-atr-mult').textContent=this.value+'×'">
+                <b id="val-atr-mult" style="font-size:11px; color:var(--text-main); min-width:28px;">1.5×</b>
+            </div>
+            <div id="volatility-status" style="margin-top:4px; font-size:11px; font-family:var(--font-mono); color:var(--text-dim);">—</div>
+        </div>
+
+        <!-- Backtesting -->
+        <div class="adv-filter-row" id="adf-backtest" style="margin-top:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <div style="font-size:12px; color:var(--text-main); font-weight:600;">📈 Backtesting Acumulado</div>
+                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">Taxa de acerto por par/TF — bloqueia abaixo de 50%</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="chk-backtest" onchange="STATE.settings.useBacktest=this.checked;">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div id="backtest-status" style="margin-top:6px; font-size:11px; font-family:var(--font-mono); color:var(--text-dim); line-height:1.7;">—</div>
+        </div>
+    </div>
+
+    <!-- 7. PARES MONITORADOS -->
     <div class="config-block">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <div class="block-label" style="margin-bottom:0">Pares Monitorados</div>
@@ -712,7 +811,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v8.6 — ENGINE CORE
+//  OP245-C v8.7 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -738,14 +837,27 @@ const STATE = {
         stochRsiPeriod: 14, stochKPeriod: 14, stochUp: 80, stochDw: 20,
     },
 
-    settings: { popup: true, confirmClose: false, confirmMode: 'none', useMacd: true, useStoch: true, useMM200: true, ignoreOTC: true },
+    settings: {
+        popup: true, confirmClose: false, confirmMode: 'none',
+        useMacd: true, useStoch: true, useMM200: true, ignoreOTC: true,
+        // Filtros avançados
+        useLiquidity:   false,  // Filtro de horário de liquidez
+        useNews:        false,  // Filtro de notícias econômicas
+        useMultiTF:     false,  // Confluência multi-TF
+        useVolatility:  false,  // Filtro de volatilidade (ATR)
+        useBacktest:    false,  // Backtesting acumulado
+        atrMultiplier:  1.5,    // ATR: bloqueia se volatilidade > X * ATR médio
+    },
 
     // Telegram
     telegram: { token: '8727416448:AAFEzWkfi0BUr1T0lX8cki8oK8C77qMiGFU', chatId: '-5198350830', active: false },
 
     // Log de sinais da sessão
     signalLog: [],
-    pendingResultsList: [],  // sinais aguardando apuração de Win/Loss
+    pendingResultsList: [],
+    backtestData: {},   // { 'EUR/USD_M5': { wins:0, losses:0 }, ... }
+    newsCache: [],      // cache de notícias econômicas
+    newsLastFetch: 0,   // timestamp último fetch
     isPaused: false,
     isMuted: false,
     stats: { total:0, buy:0, sell:0, conf:0, pend:0 },
@@ -1294,6 +1406,25 @@ function processTick(pair, price, source) {
             if (signalType === 'VENDA'  && macd.trend !== 'bearish') return;
         }
 
+        // ── FILTROS AVANÇADOS ──────────────────────────────
+
+        // F1: Horário de liquidez
+        if (s.useLiquidity && !isLiquidityWindow()) return;
+
+        // F2: Notícias econômicas
+        if (isNewsBlocked(pair)) return;
+
+        // F3: Confluência Multi-TF — registra direção deste TF e verifica consenso
+        registerMultiTFDirection(pair, tf, signalType);
+        if (!checkMultiTFConfluence(pair, signalType)) return;
+
+        // F4: Volatilidade ATR
+        if (isVolatilityBlocked(pair)) return;
+        updateVolatilityStatus(pair);
+
+        // F5: Backtesting — bloqueia par+TF com taxa < 50%
+        if (isBacktestBlocked(pair, tf)) return;
+
         const stochVal = stoch ? stoch.k : calculateRSI(hist, p.rsiPeriod);
 
         // ── LOCK por Ativo+TF ──
@@ -1596,6 +1727,9 @@ function checkResults() {
         if (!STATE.stats.losses) STATE.stats.losses = 0;
         win ? STATE.stats.wins++ : STATE.stats.losses++;
 
+        // Alimenta o backtesting acumulado
+        registerBacktestResult(r.pair, r.tf, win);
+
         STATE.pendingResultsList.splice(i, 1);
     }
 }
@@ -1877,7 +2011,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v8.6</span>
+                <span>OP245-C v8.7</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -1911,7 +2045,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v8.6 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v8.7 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -1964,13 +2098,250 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v8.6 Engine_`;
+_OP245-C v8.7 Engine_`;
 
     sendTelegramMessage(msg);
 }
 
 
-// ── LOG DE SINAIS ──────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+//  FILTROS AVANÇADOS
+// ══════════════════════════════════════════════════════════
+
+// ── F1. HORÁRIO DE LIQUIDEZ ────────────────────────────────
+// Janelas BRT (UTC-3): Londres 08-17h, NY 13-22h
+// Sobreposição Londres+NY (13-17h BRT) = janela de ouro
+const LIQUIDITY_WINDOWS = [
+    { name: 'Londres',    open: 8,  close: 17 },
+    { name: 'Nova York',  open: 13, close: 22 },
+];
+
+function isLiquidityWindow() {
+    const brt = new Date(Date.now() - 3 * 3600000); // BRT = UTC-3
+    const h   = brt.getUTCHours() + brt.getUTCMinutes() / 60;
+    return LIQUIDITY_WINDOWS.some(w => h >= w.open && h < w.close);
+}
+
+function getLiquidityInfo() {
+    const brt     = new Date(Date.now() - 3 * 3600000);
+    const h       = brt.getUTCHours() + brt.getUTCMinutes() / 60;
+    const active  = LIQUIDITY_WINDOWS.filter(w => h >= w.open && h < w.close);
+    const overlap = active.length === 2;
+    if (active.length === 0) {
+        const next = LIQUIDITY_WINDOWS.find(w => h < w.open) || LIQUIDITY_WINDOWS[0];
+        return { open: false, label: `Fechado — abre ${next.name} às ${next.open}h BRT`, overlap: false };
+    }
+    const label = overlap
+        ? '🟡 Londres + NY (janela de ouro)'
+        : `🟢 ${active[0].name} aberta`;
+    return { open: true, label, overlap };
+}
+
+function updateLiquidityStatus() {
+    const el = document.getElementById('liquidity-status');
+    if (!el) return;
+    const info = getLiquidityInfo();
+    const color = info.open ? (info.overlap ? 'var(--yellow)' : 'var(--green)') : 'var(--red)';
+    el.innerHTML = `<span style="color:${color}">${info.label}</span>`;
+    const row = document.getElementById('adf-liquidity');
+    if (row) row.classList.toggle('active', STATE.settings.useLiquidity && info.open);
+}
+
+// ── F2. FILTRO DE NOTÍCIAS ─────────────────────────────────
+// Usa ForexFactory RSS via proxy público — bloqueia ±30min de High Impact
+const NEWS_BLOCK_MIN = 30; // minutos de bloqueio antes/depois do evento
+
+async function fetchEconomicNews() {
+    const now = Date.now();
+    if (now - STATE.newsLastFetch < 15 * 60 * 1000) return; // cache 15min
+    STATE.newsLastFetch = now;
+
+    const el = document.getElementById('news-status');
+    if (el) el.innerHTML = '<span style="color:var(--yellow)">⏳ Carregando...</span>';
+
+    try {
+        // ForexFactory RSS via allorigins proxy (evita CORS)
+        const url  = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://nfs.faireconomy.media/ff_calendar_thisweek.json');
+        const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        const data = await resp.json();
+        const events = JSON.parse(data.contents);
+
+        // Filtra apenas eventos de alto impacto (High) hoje
+        const today = new Date().toISOString().slice(0, 10);
+        STATE.newsCache = events.filter(e =>
+            e.impact === 'High' && e.date && e.date.startsWith(today)
+        ).map(e => ({
+            title:    e.title,
+            currency: e.country,
+            time:     e.date, // ISO string
+        }));
+
+        updateNewsStatus();
+    } catch (err) {
+        if (el) el.innerHTML = '<span style="color:var(--text-dim)">Sem dados (usando só análise técnica)</span>';
+    }
+}
+
+function isNewsBlocked(pair) {
+    if (!STATE.settings.useNews || STATE.newsCache.length === 0) return false;
+    const now    = Date.now();
+    const block  = NEWS_BLOCK_MIN * 60 * 1000;
+    const currencies = pair.replace('/', '_').split('_'); // ['EUR','USD']
+
+    return STATE.newsCache.some(ev => {
+        const evTime = new Date(ev.time).getTime();
+        const diff   = Math.abs(now - evTime);
+        return diff <= block && currencies.includes(ev.currency);
+    });
+}
+
+function updateNewsStatus() {
+    const el = document.getElementById('news-status');
+    if (!el) return;
+    if (STATE.newsCache.length === 0) {
+        el.innerHTML = '<span style="color:var(--text-dim)">Nenhum evento High Impact hoje</span>';
+        return;
+    }
+    const now   = Date.now();
+    const block = NEWS_BLOCK_MIN * 60 * 1000;
+    const lines = STATE.newsCache.map(ev => {
+        const evTime  = new Date(ev.time).getTime();
+        const diff    = now - evTime;
+        const blocked = Math.abs(diff) <= block;
+        const timeStr = new Date(ev.time).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+        const color   = blocked ? 'var(--red)' : 'var(--text-dim)';
+        const icon    = blocked ? '🔴' : '⚪';
+        return `<span style="color:${color}">${icon} ${timeStr} ${ev.currency} — ${ev.title}</span>`;
+    });
+    el.innerHTML = lines.join('<br>');
+}
+
+// ── F3. CONFLUÊNCIA MULTI-TF ───────────────────────────────
+// Guarda última direção por par+TF — sinal só dispara se M5 e M10 concordam
+const multiTFSignals = {}; // { 'EUR/USD_M5': 'COMPRA', 'EUR/USD_M10': 'COMPRA' }
+
+function registerMultiTFDirection(pair, tf, direction) {
+    multiTFSignals[`${pair}_${tf}`] = direction;
+    updateMultiTFStatus(pair);
+}
+
+function checkMultiTFConfluence(pair, direction) {
+    if (!STATE.settings.useMultiTF) return true;
+    const tfs = Array.from(STATE.selectedTFs);
+    if (tfs.length < 2) return true; // só faz sentido com múltiplos TFs
+
+    // Verifica se todos os TFs selecionados têm a mesma direção
+    const agreeing = tfs.filter(tf => multiTFSignals[`${pair}_${tf}`] === direction);
+    return agreeing.length === tfs.length;
+}
+
+function updateMultiTFStatus(pair) {
+    const el  = document.getElementById('multitf-status');
+    if (!el) return;
+    const tfs = Array.from(STATE.selectedTFs);
+    const lines = tfs.map(tf => {
+        const dir   = multiTFSignals[`${pair}_${tf}`];
+        const color = dir === 'COMPRA' ? 'var(--green)' : dir === 'VENDA' ? 'var(--red)' : 'var(--text-dim)';
+        return `<span style="color:${color}">${tf}: ${dir || '—'}</span>`;
+    });
+    el.innerHTML = lines.join(' &nbsp;|&nbsp; ');
+}
+
+// ── F4. FILTRO DE VOLATILIDADE (ATR) ──────────────────────
+// ATR = média das amplitudes das últimas N velas
+// Bloqueia se ATR atual > atrMultiplier × ATR médio dos últimos 20 períodos
+
+function calculateATR(hist, period = 14) {
+    if (hist.length < period + 1) return null;
+    // Como temos só fechamentos, usa variação entre ticks consecutivos como proxy do TR
+    const trs = [];
+    for (let i = hist.length - period - 1; i < hist.length - 1; i++) {
+        trs.push(Math.abs(hist[i + 1] - hist[i]));
+    }
+    const atr = trs.reduce((a, b) => a + b, 0) / trs.length;
+    // ATR atual = última variação
+    const current = Math.abs(hist[hist.length - 1] - hist[hist.length - 2]);
+    return { atr, current, ratio: current / atr };
+}
+
+function isVolatilityBlocked(pair) {
+    if (!STATE.settings.useVolatility) return false;
+    const hist = STATE.marketData[pair];
+    if (!hist || hist.length < 30) return false;
+    const atrData = calculateATR(hist, 14);
+    if (!atrData) return false;
+    return atrData.ratio > STATE.settings.atrMultiplier;
+}
+
+function updateVolatilityStatus(pair) {
+    const el = document.getElementById('volatility-status');
+    if (!el) return;
+    const hist = STATE.marketData[pair];
+    if (!hist || hist.length < 30) { el.innerHTML = '—'; return; }
+    const atrData = calculateATR(hist, 14);
+    if (!atrData) return;
+    const blocked = atrData.ratio > STATE.settings.atrMultiplier;
+    const color   = blocked ? 'var(--red)' : 'var(--green)';
+    const label   = blocked ? '⚡ Alta volatilidade — bloqueado' : '✓ Volatilidade normal';
+    el.innerHTML  = `<span style="color:${color}">${label} (${atrData.ratio.toFixed(2)}×)</span>`;
+}
+
+// ── F5. BACKTESTING ACUMULADO ──────────────────────────────
+// Acumula Win/Loss por par+TF e bloqueia combinações com <50% acerto
+
+function registerBacktestResult(pair, tf, win) {
+    const key = `${pair}_${tf}`;
+    if (!STATE.backtestData[key]) STATE.backtestData[key] = { wins: 0, losses: 0 };
+    win ? STATE.backtestData[key].wins++ : STATE.backtestData[key].losses++;
+    updateBacktestStatus();
+    // Persiste no localStorage para sobreviver reload
+    try { localStorage.setItem('op245c_backtest', JSON.stringify(STATE.backtestData)); } catch(e) {}
+}
+
+function getBacktestRate(pair, tf) {
+    const key  = `${pair}_${tf}`;
+    const data = STATE.backtestData[key];
+    if (!data || (data.wins + data.losses) < 5) return null; // precisa de mínimo 5 amostras
+    return data.wins / (data.wins + data.losses);
+}
+
+function isBacktestBlocked(pair, tf) {
+    if (!STATE.settings.useBacktest) return false;
+    const rate = getBacktestRate(pair, tf);
+    if (rate === null) return false; // amostras insuficientes → não bloqueia
+    return rate < 0.50;
+}
+
+function updateBacktestStatus() {
+    const el = document.getElementById('backtest-status');
+    if (!el) return;
+    const keys = Object.keys(STATE.backtestData);
+    if (keys.length === 0) { el.innerHTML = '<span style="color:var(--text-dim)">Sem dados ainda</span>'; return; }
+    const lines = keys.map(key => {
+        const d      = STATE.backtestData[key];
+        const total  = d.wins + d.losses;
+        const rate   = total > 0 ? (d.wins / total * 100).toFixed(0) : 0;
+        const color  = rate >= 60 ? 'var(--green)' : rate >= 50 ? 'var(--yellow)' : 'var(--red)';
+        const icon   = rate >= 60 ? '✓' : rate >= 50 ? '~' : '✗';
+        return `<span style="color:${color}">${icon} ${key}: ${rate}% (${d.wins}W/${d.losses}L)</span>`;
+    });
+    el.innerHTML = lines.join('<br>');
+}
+
+function loadBacktestFromStorage() {
+    try {
+        const saved = localStorage.getItem('op245c_backtest');
+        if (saved) { STATE.backtestData = JSON.parse(saved); updateBacktestStatus(); }
+    } catch(e) {}
+}
+
+function updateAdvFilterUI() {
+    updateLiquidityStatus();
+    updateNewsStatus();
+    updateBacktestStatus();
+}
+
+
 
 function switchTab(tab) {
     const isSinais = tab === 'sinais';
@@ -2063,7 +2434,15 @@ function init() {
     setInterval(checkPendingTimeouts, 1000);
     setInterval(checkResults, 1000);
     setInterval(updateOTCStatusBar, 30000);
-    setInterval(updateMarketStatusPanel, 60000); // atualiza painel a cada 1min
+    setInterval(updateMarketStatusPanel, 60000);
+    setInterval(updateLiquidityStatus, 60000);   // atualiza status de liquidez a cada 1min
+    setInterval(updateNewsStatus, 60000);         // atualiza status de notícias a cada 1min
+    setInterval(() => { if (STATE.settings.useNews) fetchEconomicNews(); }, 15 * 60 * 1000);
+
+    // Carrega dados persistidos
+    loadBacktestFromStorage();
+    updateAdvFilterUI();
+    updateLiquidityStatus(); // atualiza painel a cada 1min
     updateOTCStatusBar();
     updateMarketStatusPanel(); // renderiza imediatamente na abertura
 
@@ -2107,7 +2486,7 @@ function init() {
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v8.6] Engine iniciada.');
+    console.log('[OP245-C v8.7] Engine iniciada.');
 }
 
 init();
