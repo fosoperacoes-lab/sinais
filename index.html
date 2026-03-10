@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v8.7 | Engine</title>
+    <title>OP245-C Sinais v9.0 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -438,7 +438,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v8.7 ENGINE</span>
+        <span class="nav-version">SINAIS v9.0 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -746,6 +746,7 @@
         <div style="display:flex; gap:6px; margin-left:auto;">
             <button id="tab-sinais" onclick="switchTab('sinais')" style="background:var(--blue); border:none; color:#fff; padding:4px 14px; border-radius:3px; font-family:var(--font-mono); font-size:12px; cursor:pointer; font-weight:600;">SINAIS</button>
             <button id="tab-log" onclick="switchTab('log')" style="background:var(--bg-card); border:1px solid var(--border2); color:var(--text-mid); padding:4px 14px; border-radius:3px; font-family:var(--font-mono); font-size:12px; cursor:pointer;">LOG</button>
+            <button id="tab-perf" onclick="switchTab('perf')" style="background:var(--bg-card); border:1px solid var(--border2); color:var(--text-mid); padding:4px 14px; border-radius:3px; font-family:var(--font-mono); font-size:12px; cursor:pointer;">PERF</button>
             <button onclick="exportLog()" style="background:var(--bg-card); border:1px solid var(--border2); color:var(--text-dim); padding:4px 10px; border-radius:3px; font-family:var(--font-mono); font-size:11px; cursor:pointer;" title="Exportar CSV">⬇ CSV</button>
         </div>
     </div>
@@ -807,11 +808,20 @@
         </table>
         <div id="log-empty" style="text-align:center; padding:40px; color:var(--text-dim); font-size:13px;">Nenhum sinal registrado ainda.</div>
     </div>
+
+    <!-- ABA PERF -->
+    <div id="panel-perf" class="table-section" style="display:none; padding:16px;">
+        <div id="perf-content">
+            <div style="text-align:center; padding:40px; color:var(--text-dim); font-size:13px;">
+                Nenhum resultado registrado ainda.<br>Os dados aparecem conforme as operações são apuradas.
+            </div>
+        </div>
+    </div>
 </main>
 
 <script>
 // ============================================================
-//  OP245-C v8.7 — ENGINE CORE
+//  OP245-C v9.0 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -882,7 +892,8 @@ const STATE = {
     pendingSignalsList: [],
 };
 
-// Pre-popula marketData com histórico simulado (base para RSI/MACD iniciais)
+// Pre-popula marketData com OHLC simulado (base para indicadores iniciais)
+// Cada candle: { o, h, l, c, t } — open, high, low, close, timestamp
 STATE.assets.forEach(asset => {
     STATE.marketData[asset] = [];
     let base = asset.includes('BTC') ? 65000 :
@@ -890,11 +901,24 @@ STATE.assets.forEach(asset => {
                asset.includes('XAU') ? 2300 :
                asset.includes('SOL') ? 180 :
                asset.includes('XRP') ? 0.6 : 1.10;
-    for (let i = 0; i < 100; i++) {
-        base = base * (1 + (Math.random() * 0.002 - 0.001));
-        STATE.marketData[asset].push(parseFloat(base.toFixed(asset.includes('BTC') ? 2 : 5)));
+    const dp = asset.includes('BTC') || asset.includes('ETH') ? 2 :
+               asset.includes('XAU') ? 2 : 5;
+    for (let i = 0; i < 150; i++) {
+        const o = parseFloat(base.toFixed(dp));
+        const move = base * (Math.random() * 0.003 - 0.0015);
+        const c = parseFloat((base + move).toFixed(dp));
+        const h = parseFloat((Math.max(o, c) * (1 + Math.random() * 0.001)).toFixed(dp));
+        const l = parseFloat((Math.min(o, c) * (1 - Math.random() * 0.001)).toFixed(dp));
+        const t = Date.now() - (150 - i) * 60000; // 1 candle por minuto atrás
+        STATE.marketData[asset].push({ o, h, l, c, t });
+        base = c;
     }
 });
+
+// Helper: extrai array de fechamentos de um buffer OHLC
+function closes(hist) { return hist.map(c => c.c); }
+// Helper: último fechamento
+function lastClose(hist) { return hist[hist.length - 1].c; }
 
 // ── 2. MOTOR MATEMÁTICO ────────────────────────────────────
 
@@ -1119,18 +1143,23 @@ async function connectRealData() {
 }
 
 async function populateHistoricalData() {
-    // Busca histórico real para os primeiros 3 ativos selecionados (limite de rate)
     const selected = Array.from(STATE.selectedAssets).slice(0, 3);
     for (const asset of selected) {
         try {
             const symbol = SYMBOL_MAP[asset] || asset;
-            const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=100&apikey=${STATE.apiKey}`;
-            const res = await fetch(url);
+            const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=5min&outputsize=150&apikey=${STATE.apiKey}`;
+            const res  = await fetch(url);
             const data = await res.json();
             if (data.values && Array.isArray(data.values)) {
-                const prices = data.values.reverse().map(c => parseFloat(c.close));
-                STATE.marketData[asset] = prices;
-                console.log(`[API] Histórico carregado para ${asset}: ${prices.length} candles`);
+                const candles = data.values.reverse().map(c => ({
+                    o: parseFloat(c.open),
+                    h: parseFloat(c.high),
+                    l: parseFloat(c.low),
+                    c: parseFloat(c.close),
+                    t: new Date(c.datetime).getTime(),
+                }));
+                STATE.marketData[asset] = candles;
+                console.log(`[API] OHLC carregado para ${asset}: ${candles.length} velas de 5min`);
             }
         } catch (e) {
             console.warn(`[API] Falha ao buscar histórico de ${asset}:`, e.message);
@@ -1161,17 +1190,13 @@ function connectWebSocket() {
                 return;
             }
             if (msg.event === 'price' && msg.symbol && msg.price) {
-                // Reverte mapeamento para nome interno
                 const internalKey = Object.keys(SYMBOL_MAP).find(k => SYMBOL_MAP[k] === msg.symbol) || msg.symbol;
-                if (STATE.marketData[internalKey]) {
+                if (STATE.marketData[internalKey] !== undefined) {
                     const price = parseFloat(msg.price);
-                    STATE.marketData[internalKey].push(price);
-                    if (STATE.marketData[internalKey].length > 200) {
-                        STATE.marketData[internalKey].shift();
-                    }
+                    // Agrega tick no candle M1 (base) — indicadores calculados sobre M5/M10 pelo processTick
+                    buildOHLCCandle(STATE.marketData[internalKey], price, 1);
                     STATE.apiLastUpdate = new Date();
                     updateApiTimestamp();
-                    // Só processa se o par estiver selecionado pelo usuário
                     if (STATE.selectedAssets.has(internalKey)) {
                         processTick(internalKey, price, 'real');
                     }
@@ -1217,13 +1242,11 @@ function startSimulationEngine() {
         STATE.selectedAssets.forEach(pair => {
             const hist = STATE.marketData[pair];
             if (!hist || hist.length === 0) return;
-            const last = hist[hist.length - 1];
-            const newPrice = parseFloat((last * (1 + (Math.random() * 0.003 - 0.0015))).toFixed(5));
+            const last     = lastClose(hist);
+            const move     = last * (Math.random() * 0.003 - 0.0015);
+            const newPrice = parseFloat((last + move).toFixed(last > 100 ? 2 : 5));
 
-            // Buffer rotativo máx 200
-            hist.push(newPrice);
-            if (hist.length > 200) hist.shift();
-
+            buildOHLCCandle(hist, newPrice, 1); // agrega em candle M1
             processTick(pair, newPrice, 'sim');
         });
     }, 2000);
@@ -1370,10 +1393,13 @@ function processTick(pair, price, source) {
 
         if (hist.length < p.rsiPeriod + 1) return;
 
+        // Extrai fechamentos para indicadores (sobre velas OHLC)
+        const cls   = closes(hist);
+
         // Calcula indicadores com parâmetros do TF
-        const stoch = calculateStochRSI(hist, p.stochRsiPeriod, p.stochKPeriod);
-        const macd  = calculateMACD(hist, p.macdFast, p.macdSlow, p.macdSignal);
-        const mm200 = calculateMM200(hist);
+        const stoch = calculateStochRSI(cls, p.stochRsiPeriod, p.stochKPeriod);
+        const macd  = calculateMACD(cls, p.macdFast, p.macdSlow, p.macdSignal);
+        const mm200 = calculateMM200(cls);
 
         // Atualiza sidebar só para o ativo e TF principal
         if (pair === Array.from(STATE.selectedAssets)[0] && tf === tfs[0]) {
@@ -1388,7 +1414,7 @@ function processTick(pair, price, source) {
             if (stoch.k >= p.stochUp) signalType = 'VENDA';
             else if (stoch.k <= p.stochDw) signalType = 'COMPRA';
         } else {
-            const rsi = calculateRSI(hist, p.rsiPeriod);
+            const rsi = calculateRSI(cls, p.rsiPeriod);
             if (rsi >= p.rsiUp) signalType = 'VENDA';
             else if (rsi <= p.rsiDw) signalType = 'COMPRA';
         }
@@ -1414,9 +1440,9 @@ function processTick(pair, price, source) {
         // F2: Notícias econômicas
         if (isNewsBlocked(pair)) return;
 
-        // F3: Confluência Multi-TF — registra direção deste TF e verifica consenso
+        // F3: Confluência Multi-TF — M10 tendência, M5 gatilho
         registerMultiTFDirection(pair, tf, signalType);
-        if (!checkMultiTFConfluence(pair, signalType)) return;
+        if (!checkMultiTFConfluence(pair, signalType, tf)) return;
 
         // F4: Volatilidade ATR
         if (isVolatilityBlocked(pair)) return;
@@ -1425,7 +1451,7 @@ function processTick(pair, price, source) {
         // F5: Backtesting — bloqueia par+TF com taxa < 50%
         if (isBacktestBlocked(pair, tf)) return;
 
-        const stochVal = stoch ? stoch.k : calculateRSI(hist, p.rsiPeriod);
+        const stochVal = stoch ? stoch.k : calculateRSI(cls, p.rsiPeriod);
 
         // ── LOCK por Ativo+TF ──
         // Uma única entrada por par/TF por vela. O lock dura até a vela fechar.
@@ -1636,7 +1662,7 @@ function checkPendingTimeouts() {
 
 function _resolveSignal(sig, i, hist) {
     const p     = STATE.params;
-    const stoch = calculateStochRSI(hist, p.stochRsiPeriod, p.stochKPeriod);
+    const stoch = calculateStochRSI(closes(hist), p.stochRsiPeriod, p.stochKPeriod);
     const confirmed = stoch
         ? (sig.type === 'COMPRA' ? stoch.k <= p.stochUp : stoch.k >= p.stochDw)
         : true;
@@ -1703,7 +1729,7 @@ function checkResults() {
             continue;
         }
 
-        const closePrice = hist[hist.length - 1];
+        const closePrice = lastClose(hist);
         const win = r.type === 'COMPRA'
             ? closePrice > r.entryPrice
             : closePrice < r.entryPrice;
@@ -2011,7 +2037,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v8.7</span>
+                <span>OP245-C v9.0</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -2045,7 +2071,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v8.7 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v9.0 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -2098,7 +2124,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v8.7 Engine_`;
+_OP245-C v9.0 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -2220,49 +2246,127 @@ function updateNewsStatus() {
 // Guarda última direção por par+TF — sinal só dispara se M5 e M10 concordam
 const multiTFSignals = {}; // { 'EUR/USD_M5': 'COMPRA', 'EUR/USD_M10': 'COMPRA' }
 
+// ── F3. CONFLUÊNCIA MULTI-TF (CORRIGIDA) ──────────────────
+// Lógica: M10 (ou TF maior) define a TENDÊNCIA macro via MM200 e MACD
+//         M5  (ou TF menor) dá o GATILHO via Stoch RSI
+// Sinal só é válido quando os dois concordam
+
+const multiTFTrend = {}; // { 'EUR/USD_M10': 'bull'|'bear'|null }
+
 function registerMultiTFDirection(pair, tf, direction) {
+    // Registra apenas para exibição no status
     multiTFSignals[`${pair}_${tf}`] = direction;
     updateMultiTFStatus(pair);
 }
 
-function checkMultiTFConfluence(pair, direction) {
+function checkMultiTFConfluence(pair, direction, tf) {
     if (!STATE.settings.useMultiTF) return true;
-    const tfs = Array.from(STATE.selectedTFs);
-    if (tfs.length < 2) return true; // só faz sentido com múltiplos TFs
+    const tfs = Array.from(STATE.selectedTFs).sort((a, b) =>
+        parseInt(a.replace('M','')) - parseInt(b.replace('M',''))
+    );
+    if (tfs.length < 2) return true;
 
-    // Verifica se todos os TFs selecionados têm a mesma direção
-    const agreeing = tfs.filter(tf => multiTFSignals[`${pair}_${tf}`] === direction);
-    return agreeing.length === tfs.length;
+    // TF maior = tendência, TF menor = gatilho
+    const triggerTF = tfs[0];  // ex: M5
+    const trendTF   = tfs[tfs.length - 1]; // ex: M10
+
+    // Só aplica filtro quando o sinal vem do TF gatilho
+    if (tf !== triggerTF) return true;
+
+    // Calcula MM200 e MACD do TF de tendência para definir direção macro
+    const hist = STATE.marketData[pair];
+    if (!hist || hist.length < 30) return true;
+    const cls    = closes(hist);
+    const mm200  = calculateMM200(cls);
+    const macd   = calculateMACD(cls, 21, 34, 9); // parâmetros do TF maior
+
+    let trendDir = null;
+    if (mm200 && macd) {
+        const bullTrend = mm200.trend === 'above' && macd.trend === 'bullish';
+        const bearTrend = mm200.trend === 'below' && macd.trend === 'bearish';
+        if (bullTrend)  trendDir = 'COMPRA';
+        if (bearTrend)  trendDir = 'VENDA';
+    }
+
+    multiTFTrend[`${pair}_${trendTF}`] = trendDir;
+    updateMultiTFStatus(pair);
+
+    // Sinal válido só quando alinha com a tendência macro
+    if (!trendDir) return false; // tendência indefinida → não opera
+    return direction === trendDir;
 }
 
 function updateMultiTFStatus(pair) {
     const el  = document.getElementById('multitf-status');
     if (!el) return;
-    const tfs = Array.from(STATE.selectedTFs);
-    const lines = tfs.map(tf => {
-        const dir   = multiTFSignals[`${pair}_${tf}`];
-        const color = dir === 'COMPRA' ? 'var(--green)' : dir === 'VENDA' ? 'var(--red)' : 'var(--text-dim)';
-        return `<span style="color:${color}">${tf}: ${dir || '—'}</span>`;
-    });
-    el.innerHTML = lines.join(' &nbsp;|&nbsp; ');
+    const tfs = Array.from(STATE.selectedTFs).sort((a, b) =>
+        parseInt(a.replace('M','')) - parseInt(b.replace('M',''))
+    );
+    if (tfs.length < 2) { el.innerHTML = '<span style="color:var(--text-dim)">Selecione 2+ TFs</span>'; return; }
+
+    const triggerTF = tfs[0];
+    const trendTF   = tfs[tfs.length - 1];
+    const trend     = multiTFTrend[`${pair}_${trendTF}`];
+    const trigger   = multiTFSignals[`${pair}_${triggerTF}`];
+
+    const tColor = trend === 'COMPRA' ? 'var(--green)' : trend === 'VENDA' ? 'var(--red)' : 'var(--text-dim)';
+    const gColor = trigger === 'COMPRA' ? 'var(--green)' : trigger === 'VENDA' ? 'var(--red)' : 'var(--text-dim)';
+    const aligned = trend && trigger && trend === trigger;
+
+    el.innerHTML = `<span style="color:${tColor}">${trendTF} tendência: ${trend||'—'}</span>
+        &nbsp;|&nbsp; <span style="color:${gColor}">${triggerTF} gatilho: ${trigger||'—'}</span>
+        ${aligned ? '<span style="color:var(--green)"> ✓ Alinhado</span>' : '<span style="color:var(--red)"> ✗ Divergente</span>'}`;
 }
 
 // ── F4. FILTRO DE VOLATILIDADE (ATR) ──────────────────────
 // ATR = média das amplitudes das últimas N velas
 // Bloqueia se ATR atual > atrMultiplier × ATR médio dos últimos 20 períodos
 
+// ── 2d. ATR REAL (True Range com OHLC) ────────────────────
+/**
+ * ATR correto: True Range = max(H-L, |H-Cprev|, |L-Cprev|)
+ * Retorna { atr, current, ratio } onde ratio = ATR_atual / ATR_médio
+ */
 function calculateATR(hist, period = 14) {
     if (hist.length < period + 1) return null;
-    // Como temos só fechamentos, usa variação entre ticks consecutivos como proxy do TR
     const trs = [];
     for (let i = hist.length - period - 1; i < hist.length - 1; i++) {
-        trs.push(Math.abs(hist[i + 1] - hist[i]));
+        const cur  = hist[i + 1];
+        const prev = hist[i];
+        const tr   = Math.max(
+            cur.h - cur.l,
+            Math.abs(cur.h - prev.c),
+            Math.abs(cur.l - prev.c)
+        );
+        trs.push(tr);
     }
-    const atr = trs.reduce((a, b) => a + b, 0) / trs.length;
-    // ATR atual = última variação
-    const current = Math.abs(hist[hist.length - 1] - hist[hist.length - 2]);
-    return { atr, current, ratio: current / atr };
+    const atr     = trs.reduce((a, b) => a + b, 0) / trs.length;
+    const lastTR  = trs[trs.length - 1];
+    return { atr, current: lastTR, ratio: atr > 0 ? lastTR / atr : 1 };
 }
+
+/**
+ * Agrega ticks brutos do WebSocket em velas OHLC pelo TF solicitado
+ * Mantém candle corrente aberto até virar o período
+ */
+function buildOHLCCandle(hist, price, tfMin) {
+    const now   = Date.now();
+    const msPerCandle = tfMin * 60 * 1000;
+    const candleTs    = Math.floor(now / msPerCandle) * msPerCandle;
+
+    if (hist.length > 0 && hist[hist.length - 1].t === candleTs) {
+        // Atualiza candle corrente
+        const c = hist[hist.length - 1];
+        c.h = Math.max(c.h, price);
+        c.l = Math.min(c.l, price);
+        c.c = price;
+    } else {
+        // Abre novo candle
+        hist.push({ o: price, h: price, l: price, c: price, t: candleTs });
+        if (hist.length > 300) hist.shift();
+    }
+}
+
 
 function isVolatilityBlocked(pair) {
     if (!STATE.settings.useVolatility) return false;
@@ -2294,7 +2398,7 @@ function registerBacktestResult(pair, tf, win) {
     if (!STATE.backtestData[key]) STATE.backtestData[key] = { wins: 0, losses: 0 };
     win ? STATE.backtestData[key].wins++ : STATE.backtestData[key].losses++;
     updateBacktestStatus();
-    // Persiste no localStorage para sobreviver reload
+    renderPerformancePanel(); // atualiza painel PERF em tempo real
     try { localStorage.setItem('op245c_backtest', JSON.stringify(STATE.backtestData)); } catch(e) {}
 }
 
@@ -2343,12 +2447,108 @@ function updateAdvFilterUI() {
 
 
 
+// ── COUNTDOWN NAS LINHAS PENDENTES ────────────────────────
+function updateCountdowns() {
+    const now    = new Date();
+    const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    STATE.pendingSignalsList.forEach(sig => {
+        if (sig.checked) return;
+        const row  = document.getElementById(sig.id);
+        if (!row) return;
+        const cell = row.querySelector('.status-cell');
+        if (!cell) return;
+        const parts     = sig.candleTime.split(':');
+        const targetSec = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+        let diffSec     = targetSec - nowSec;
+        if (diffSec < -43200) diffSec += 86400;
+        if (diffSec > 0) {
+            const m  = Math.floor(diffSec / 60);
+            const s  = diffSec % 60;
+            cell.innerHTML = `<span class="status-pend">⏳ ${m}:${s.toString().padStart(2,'0')}</span>`;
+        }
+    });
+}
+
+// ── PAINEL DE PERFORMANCE ─────────────────────────────────
+function renderPerformancePanel() {
+    const container = document.getElementById('perf-content');
+    if (!container) return;
+
+    const data = STATE.backtestData;
+    const keys = Object.keys(data);
+
+    if (keys.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-dim); font-size:13px;">
+            Nenhum resultado registrado ainda.<br>Os dados aparecem conforme as operações são apuradas.</div>`;
+        return;
+    }
+
+    // Agrupa por par
+    const byPair = {};
+    keys.forEach(key => {
+        const [pair, tf] = key.split('_');
+        if (!byPair[pair]) byPair[pair] = {};
+        byPair[pair][tf]  = data[key];
+    });
+
+    let html = '';
+
+    // Taxa por Par/TF
+    html += `<div style="margin-bottom:16px;">
+        <div style="font-size:11px; color:var(--text-dim); font-family:var(--font-mono); margin-bottom:8px; letter-spacing:1px;">TAXA DE ACERTO POR PAR / TF</div>`;
+    Object.keys(byPair).sort().forEach(pair => {
+        Object.keys(byPair[pair]).forEach(tf => {
+            const d     = byPair[pair][tf];
+            const total = d.wins + d.losses;
+            if (total === 0) return;
+            const rate  = d.wins / total * 100;
+            const color = rate >= 65 ? 'var(--green)' : rate >= 50 ? 'var(--yellow)' : 'var(--red)';
+            html += `<div style="margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+                    <span style="font-size:12px; color:var(--text-main); font-family:var(--font-mono);">${pair} <span style="color:var(--blue)">${tf}</span></span>
+                    <span style="font-size:12px; font-weight:700; color:${color}; font-family:var(--font-mono);">${rate.toFixed(0)}% <span style="color:var(--text-dim); font-weight:400;">(${d.wins}W/${d.losses}L)</span></span>
+                </div>
+                <div style="height:4px; background:var(--border2); border-radius:2px;">
+                    <div style="height:4px; width:${Math.min(rate,100).toFixed(0)}%; background:${color}; border-radius:2px;"></div>
+                </div>
+            </div>`;
+        });
+    });
+    html += '</div>';
+
+    // Resumo geral
+    const totalW = keys.reduce((a, k) => a + data[k].wins,   0);
+    const totalL = keys.reduce((a, k) => a + data[k].losses, 0);
+    const total  = totalW + totalL;
+    const gRate  = total > 0 ? (totalW / total * 100) : null;
+    const gColor = gRate === null ? 'var(--text-dim)' : gRate >= 65 ? 'var(--green)' : gRate >= 50 ? 'var(--yellow)' : 'var(--red)';
+
+    html += `<div style="padding:12px; background:var(--bg-card); border-radius:4px; border:1px solid var(--border2); text-align:center;">
+        <div style="font-size:11px; color:var(--text-dim); margin-bottom:4px; font-family:var(--font-mono);">TAXA GERAL DA SESSÃO</div>
+        <div style="font-size:32px; font-weight:700; color:${gColor}; font-family:var(--font-mono);">${gRate !== null ? gRate.toFixed(1)+'%' : '—'}</div>
+        <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">${totalW}W &nbsp;/&nbsp; ${totalL}L &nbsp;/&nbsp; ${total} total</div>
+        <button onclick="if(confirm('Apagar histórico?')){STATE.backtestData={};try{localStorage.removeItem('op245c_backtest')}catch(e){}renderPerformancePanel();updateBacktestStatus();}"
+            style="margin-top:10px; background:transparent; border:1px solid var(--border2); color:var(--text-dim); padding:4px 12px; border-radius:3px; font-size:11px; cursor:pointer;">
+            Resetar histórico
+        </button>
+    </div>`;
+
+    container.innerHTML = html;
+}
+
 function switchTab(tab) {
-    const isSinais = tab === 'sinais';
-    document.getElementById('panel-sinais').style.display = isSinais ? '' : 'none';
-    document.getElementById('panel-log').style.display    = isSinais ? 'none' : '';
-    document.getElementById('tab-sinais').style.cssText   += isSinais ? ';background:var(--blue);color:#fff;border:none' : ';background:var(--bg-card);color:var(--text-mid);border:1px solid var(--border2)';
-    document.getElementById('tab-log').style.cssText      += isSinais ? ';background:var(--bg-card);color:var(--text-mid);border:1px solid var(--border2)' : ';background:var(--blue);color:#fff;border:none';
+    ['sinais','log','perf'].forEach(t => {
+        const panel = document.getElementById(`panel-${t}`);
+        const btn   = document.getElementById(`tab-${t}`);
+        if (!panel || !btn) return;
+        const active = t === tab;
+        panel.style.display    = active ? '' : 'none';
+        btn.style.background   = active ? 'var(--blue)' : 'var(--bg-card)';
+        btn.style.color        = active ? '#fff' : 'var(--text-mid)';
+        btn.style.border       = active ? 'none' : '1px solid var(--border2)';
+        btn.style.fontWeight   = active ? '600' : '400';
+    });
+    if (tab === 'perf') renderPerformancePanel();
 }
 
 function addToLog(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source) {
@@ -2433,13 +2633,13 @@ function init() {
     setInterval(updateClock, 1000);
     setInterval(checkPendingTimeouts, 1000);
     setInterval(checkResults, 1000);
+    setInterval(updateCountdowns, 1000);      // countdown nas linhas pendentes
     setInterval(updateOTCStatusBar, 30000);
     setInterval(updateMarketStatusPanel, 60000);
-    setInterval(updateLiquidityStatus, 60000);   // atualiza status de liquidez a cada 1min
-    setInterval(updateNewsStatus, 60000);         // atualiza status de notícias a cada 1min
+    setInterval(updateLiquidityStatus, 60000);
+    setInterval(updateNewsStatus, 60000);
     setInterval(() => { if (STATE.settings.useNews) fetchEconomicNews(); }, 15 * 60 * 1000);
 
-    // Carrega dados persistidos
     loadBacktestFromStorage();
     updateAdvFilterUI();
     updateLiquidityStatus(); // atualiza painel a cada 1min
@@ -2486,7 +2686,7 @@ function init() {
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v8.7] Engine iniciada.');
+    console.log('[OP245-C v9.0] Engine iniciada.');
 }
 
 init();
