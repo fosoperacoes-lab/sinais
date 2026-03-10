@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v9.4 | Engine</title>
+    <title>OP245-C Sinais v9.5 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -438,7 +438,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v9.4 ENGINE</span>
+        <span class="nav-version">SINAIS v9.5 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -821,7 +821,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v9.4 — ENGINE CORE
+//  OP245-C v9.5 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -1514,24 +1514,27 @@ function processTick(pair, price, source) {
 
         const stochVal = stoch ? stoch.k : calculateRSI(cls, p.rsiPeriod);
 
-        // ── LOCK por Ativo+TF ──
-        // Mínimo: 1 vela completa. Impede sinais em cascata no mesmo par.
-        const now   = Date.now();
-        const tfMin = parseInt(tf.replace('M','')) * 60 * 1000;
-        // TTL = duração da vela + 10s de margem (garante vela completamente fechada)
-        const lockTTL = tfMin + 10000;
+        // ── FILTRO ANTI-SATURAÇÃO ──────────────────────────
+        // Stoch exatamente em 0 ou 100 = indicador saturado/travado
+        // Não é sinal confiável — é apenas falta de dados ou tendência forte sem reversão
+        if (stochVal === 0 || stochVal === 100) return;
+
+        // ── LOCK por Ativo+TF baseado no timestamp da VELA ──
+        // Chave inclui o timestamp da vela atual — garante 1 sinal por vela real
+        // Independente de quantos ticks chegam dentro da mesma vela
+        const now     = Date.now();
+        const tfMin   = parseInt(tf.replace('M','')) * 60 * 1000;
+        const tfSec   = parseInt(tf.replace('M','')) * 60;
+        // Timestamp do início da vela corrente (alinhado ao TF)
+        const velaTs  = Math.floor(now / tfMin) * tfMin;
+        const signalKey  = `${pair}_${tf}_${velaTs}`; // único por par+TF+vela
+
+        // Limpa locks de velas antigas (> 2 velas atrás)
         STATE.lockedSignals.forEach((entry, key) => {
-            if (now - entry.ts > lockTTL) STATE.lockedSignals.delete(key);
+            if (now - entry.ts > tfMin * 2) STATE.lockedSignals.delete(key);
         });
 
-        const velas = Array.from(STATE.selectedVelas);
-        if (velas.length === 0) return;
-        const velaType   = velas[Math.floor(Math.random() * velas.length)];
-        const candleTime = getCandleTime(tf, velaType);
-
-        // Chave: par+tf — um sinal por par por timeframe por vela
-        const signalKey = `${pair}_${tf}`;
-        const existing  = STATE.lockedSignals.get(signalKey);
+        const existing = STATE.lockedSignals.get(signalKey);
 
         // Força do sinal: quanto mais extremo o Stoch, mais forte
         const force = signalType === 'COMPRA'
@@ -1539,13 +1542,20 @@ function processTick(pair, price, source) {
             : Math.max(0, stochVal - p.stochUp);
 
         if (existing) {
-            // Substitui só se for significativamente mais forte (>5 pontos)
+            // Mesma vela: só substitui se novo sinal for >5 pontos mais forte
+            // E apenas se a direção for a mesma — bloqueia conflito COMPRA+VENDA
+            if (existing.type !== signalType) return; // direção conflitante → ignora
             if (force <= existing.force + 5) return;
             const oldRow = document.getElementById(existing.rowId);
             if (oldRow) oldRow.remove();
         }
 
-        STATE.lockedSignals.set(signalKey, { ts: now, force, rowId: `row-${STATE.rowCounter + 1}` });
+        const velas = Array.from(STATE.selectedVelas);
+        if (velas.length === 0) return;
+        const velaType   = velas[Math.floor(Math.random() * velas.length)];
+        const candleTime = getCandleTime(tf, velaType);
+
+        STATE.lockedSignals.set(signalKey, { ts: now, force, type: signalType, rowId: `row-${STATE.rowCounter + 1}` });
         dispatchVisualSignal(pair, signalType, tf, velaType, candleTime, price.toFixed(5), stochVal, macd, mm200, source);
     });
 }
@@ -1785,18 +1795,39 @@ function checkResults() {
 
         // Ainda não chegou o fechamento da vela
         let diffSec = r.closeSec - nowSec;
-        // Trata virada de meia-noite
         if (diffSec < -43200) diffSec += 86400;
         if (diffSec > 0) continue;
 
-        // Busca preço atual do par
+        // Expiração: se passou mais de 2 TFs sem apurar, descarta
+        if (diffSec < -(parseInt(r.tf.replace('M','')) * 120)) {
+            STATE.pendingResultsList.splice(i, 1);
+            continue;
+        }
+
         const hist = STATE.marketData[r.pair];
         if (!hist || hist.length === 0) {
             STATE.pendingResultsList.splice(i, 1);
             continue;
         }
 
+        // Verifica se o tick mais recente é posterior ao fechamento da vela
+        // Se o último candle do buffer tem timestamp < closeSec, o WS ainda não entregou
+        // o tick pós-fechamento — aguarda mais 1 ciclo
+        const lastCandle = hist[hist.length - 1];
+        const lastCandleSec = lastCandle.t
+            ? Math.floor(lastCandle.t / 1000) % 86400
+            : nowSec;
+        if (lastCandleSec < r.closeSec - 43200 || lastCandleSec < r.closeSec) {
+            // Tick ainda não chegou — se já passou 10s do closeSec, usa o que tem
+            if (diffSec > -10) continue;
+        }
+
         const closePrice = lastClose(hist);
+
+        // Valida que o preço de fechamento é razoável (não é o mesmo tick de entrada)
+        // Se a diferença for zero, o WS pode ter travado — aguarda
+        if (closePrice === r.entryPrice && diffSec > -15) continue;
+
         const win = r.type === 'COMPRA'
             ? closePrice > r.entryPrice
             : closePrice < r.entryPrice;
@@ -1809,7 +1840,6 @@ function checkResults() {
                     ? '<span class="badge-win">✓ WIN</span>'
                     : '<span class="badge-loss">✗ LOSS</span>';
             }
-            // Destaca a linha levemente
             row.style.background = win
                 ? 'rgba(0,255,136,0.03)'
                 : 'rgba(255,51,85,0.04)';
@@ -2107,7 +2137,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v9.4</span>
+                <span>OP245-C v9.5</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -2141,7 +2171,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v9.4 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v9.5 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -2194,7 +2224,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v9.4 Engine_`;
+_OP245-C v9.5 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -2223,7 +2253,7 @@ ${direcao}
 📐 *Variação:* ${sinal}${variacao}%
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v9.4 Engine_`;
+_OP245-C v9.5 Engine_`;
 
     try {
         const encoded = encodeURIComponent(msg);
@@ -2790,7 +2820,7 @@ function init() {
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v9.4] Engine iniciada.');
+    console.log('[OP245-C v9.5] Engine iniciada.');
 }
 
 init();
