@@ -1,25 +1,39 @@
 {
-  "name": "OP245-G Engine v6.0",
-  "short_name": "OP245-G",
-  "description": "Terminal de Análise Técnica — RSI + MACD com dados reais TwelveData",
-  "start_url": "./index.html",
+  "name": "OP245-C Sinais v7",
+  "short_name": "OP245-C",
+  "description": "Terminal de Sinais — Stoch RSI + MACD + MM200 com dados reais TwelveData",
+  "start_url": "/sinais/index.html",
+  "scope": "/sinais/",
   "display": "standalone",
   "background_color": "#020608",
-  "theme_color": "#00aaff",
+  "theme_color": "#020608",
   "orientation": "portrait-primary",
   "lang": "pt-BR",
+  "categories": ["finance", "utilities"],
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

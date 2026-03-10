@@ -3,7 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v7.2 | Engine</title>
+    <title>OP245-C Sinais v7.5 | Engine</title>
+
+    <!-- PWA — instalação Android/Chrome -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#020608">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="OP245-C">
+
+    <!-- PWA — instalação iOS/Safari -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="OP245-C">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="apple-touch-startup-image" href="icon-512.png">
+
+    <!-- Ícones -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -400,7 +418,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v7.2 ENGINE</span>
+        <span class="nav-version">SINAIS v7.5 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -457,9 +475,9 @@
                 placeholder="123456:ABC-DEF..."
                 style="width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-main); padding:7px 10px; border-radius:4px; font-family:var(--font-mono); font-size:11px; margin-top:4px; outline:none;"
                 oninput="onTelegramChange()">
-            <div class="slider-header" style="margin-top:8px;"><span>Seu Chat ID:</span></div>
+            <div class="slider-header" style="margin-top:8px;"><span>Chat ID do Grupo:</span></div>
             <input type="text" id="cfg-tg-chatid"
-                placeholder="Ex: 123456789"
+                placeholder="Ex: -5198350830"
                 style="width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-main); padding:7px 10px; border-radius:4px; font-family:var(--font-mono); font-size:11px; margin-top:4px; outline:none;"
                 oninput="onTelegramChange()">
             <div style="margin-top:8px; display:flex; gap:6px; align-items:center;">
@@ -471,11 +489,6 @@
             </button>
             <div class="chk-group" style="margin-top:8px;">
                 <label class="chk-label"><input type="checkbox" id="chk-tg-active" onchange="STATE.telegram.active = this.checked"> Enviar alertas ao Telegram</label>
-            </div>
-            <div style="font-size:10px; color:var(--text-dim); margin-top:6px; line-height:1.5;">
-                1. Crie bot no <span style="color:var(--blue)">@BotFather</span><br>
-                2. Adicione o bot ao seu grupo<br>
-                3. ID do grupo: use <span style="color:var(--blue)">@userinfobot</span> dentro do grupo
             </div>
         </div>
     </div>
@@ -588,6 +601,13 @@
         </div>
         <div id="macd-status" style="margin-top:8px; font-size:13px; color:var(--text-dim); font-family:var(--font-mono);">—</div>
     </div>
+
+    <div class="config-block">
+        <div class="block-label">Status do Mercado</div>
+        <div id="market-status-grid" style="margin-top:8px; display:flex; flex-direction:column; gap:4px;">
+            <!-- preenchido por updateMarketStatusPanel() -->
+        </div>
+    </div>
 </aside>
 
 <!-- ── MAIN ── -->
@@ -627,7 +647,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v7.2 — ENGINE CORE
+//  OP245-C v7.5 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -1068,12 +1088,50 @@ function isMarketOTC(pair) {
     return false;
 }
 
+function updateMarketStatusPanel() {
+    const grid = document.getElementById('market-status-grid');
+    if (!grid) return;
+
+    const allPairs = [
+        { pair: 'EUR/USD', type: 'Forex' },
+        { pair: 'GBP/USD', type: 'Forex' },
+        { pair: 'AUD/CAD', type: 'Forex' },
+        { pair: 'EUR/JPY', type: 'Forex' },
+        { pair: 'EUR/CAD', type: 'Forex' },
+        { pair: 'XAUUSD',  type: 'Commodity' },
+        { pair: 'BTC/USD', type: 'Cripto' },
+        { pair: 'ETH/USD', type: 'Cripto' },
+        { pair: 'SOL/USD', type: 'Cripto' },
+        { pair: 'XRP/USD', type: 'Cripto' },
+    ];
+
+    grid.innerHTML = allPairs.map(({ pair, type }) => {
+        const otc     = isMarketOTC(pair);
+        const isCrypto = type === 'Cripto';
+        const dot     = isCrypto
+            ? `<span style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);flex-shrink:0;display:inline-block;"></span>`
+            : otc
+                ? `<span style="width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 5px var(--red);flex-shrink:0;display:inline-block;"></span>`
+                : `<span style="width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);flex-shrink:0;display:inline-block;"></span>`;
+        const label   = isCrypto ? '24/7' : otc ? 'OTC' : 'Aberto';
+        const color   = (isCrypto || !otc) ? 'var(--green)' : 'var(--red)';
+        const typeColor = type === 'Cripto' ? 'var(--cyan)' : type === 'Commodity' ? 'var(--yellow)' : 'var(--text-dim)';
+        return `<div style="display:flex; align-items:center; justify-content:space-between; padding:3px 0;">
+            <div style="display:flex; align-items:center; gap:6px;">
+                ${dot}
+                <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-main);">${pair}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:10px; color:${typeColor};">${type}</span>
+                <span style="font-size:11px; font-weight:700; color:${color}; min-width:42px; text-align:right;">${label}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+
 function updateOTCStatusBar() {
     const bar = document.getElementById('otc-status-bar');
-    const txt = document.getElementById('otc-status-text');
-    if (!bar || !txt) return;
-
-    const otcNow = Object.keys(OTC_CLOSE_HOUR).filter(p => isMarketOTC(p));
 
     if (otcNow.length > 0 && STATE.settings.ignoreOTC) {
         bar.style.display = 'block';
@@ -1600,7 +1658,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v7.2</span>
+                <span>OP245-C v7.5</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -1634,7 +1692,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v7.2 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v7.5 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -1687,7 +1745,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v7.2 Engine_`;
+_OP245-C v7.5 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -1711,8 +1769,10 @@ function init() {
 
     setInterval(updateClock, 1000);
     setInterval(checkPendingTimeouts, 1000);
-    setInterval(updateOTCStatusBar, 30000); // verifica OTC a cada 30s
-    updateOTCStatusBar(); // verifica imediatamente na abertura
+    setInterval(updateOTCStatusBar, 30000);
+    setInterval(updateMarketStatusPanel, 60000); // atualiza painel a cada 1min
+    updateOTCStatusBar();
+    updateMarketStatusPanel(); // renderiza imediatamente na abertura
 
     // Carrega chave salva do localStorage (prioridade) ou usa chave embutida
     let savedKey = '';
@@ -1731,28 +1791,30 @@ function init() {
     try {
         const savedToken  = localStorage.getItem('op245_tg_token');
         const savedChatId = localStorage.getItem('op245_tg_chatid');
-        // Usa localStorage só se tiver valor real, senão usa o embutido no STATE
         const tgToken  = (savedToken  && savedToken.length  > 10) ? savedToken  : STATE.telegram.token;
         const tgChatId = (savedChatId && savedChatId.length > 3)  ? savedChatId : STATE.telegram.chatId;
         STATE.telegram.token  = tgToken;
         STATE.telegram.chatId = tgChatId;
-        const tokenField  = document.getElementById('cfg-tg-token');
-        const chatIdField = document.getElementById('cfg-tg-chatid');
-        if (tokenField)  tokenField.value  = tgToken;
-        if (chatIdField) chatIdField.value = tgChatId;
-        if (tgToken && tgChatId) {
-            document.getElementById('tg-status-dot').style.cssText =
-                'width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--yellow);box-shadow:0 0 6px var(--yellow)';
-            document.getElementById('tg-status-label').textContent = 'Configurado — ative quando precisar';
-            document.getElementById('tg-status-label').style.color = 'var(--yellow)';
-        }
+        // setTimeout garante que o DOM está 100% pronto antes de preencher
+        setTimeout(() => {
+            const tokenField  = document.getElementById('cfg-tg-token');
+            const chatIdField = document.getElementById('cfg-tg-chatid');
+            if (tokenField)  { tokenField.value  = tgToken;  tokenField.dispatchEvent(new Event('input')); }
+            if (chatIdField) { chatIdField.value = tgChatId; chatIdField.dispatchEvent(new Event('input')); }
+            if (tgToken && tgChatId) {
+                document.getElementById('tg-status-dot').style.cssText =
+                    'width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--yellow);box-shadow:0 0 6px var(--yellow)';
+                document.getElementById('tg-status-label').textContent = 'Configurado — ative quando precisar';
+                document.getElementById('tg-status-label').style.color = 'var(--yellow)';
+            }
+        }, 100);
     } catch(e) {}
 
     setApiStatus('connecting', 'Conectando à TwelveData...');
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v7.2] Engine iniciada.');
+    console.log('[OP245-C v7.5] Engine iniciada.');
 }
 
 init();
