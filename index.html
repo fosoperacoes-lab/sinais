@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v9.3 | Engine</title>
+    <title>OP245-C Sinais v9.4 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -438,7 +438,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v9.3 ENGINE</span>
+        <span class="nav-version">SINAIS v9.4 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -821,7 +821,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v9.3 — ENGINE CORE
+//  OP245-C v9.4 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -972,20 +972,26 @@ function calculateMACD(prices, fastP, slowP, signalP) {
 
     // Linha de sinal = EMA do MACD
     const signalLine = calculateEMA(macdSeries, signalP);
-    const macdLine = macdSeries[macdSeries.length - 1];
-    const histogram = macdLine - signalLine;
+    const macdLine   = macdSeries[macdSeries.length - 1];
+    const histogram  = macdLine - signalLine;
     const prevHistogram = macdSeries.length > 1
         ? macdSeries[macdSeries.length - 2] - calculateEMA(macdSeries.slice(0, -1), signalP)
         : 0;
 
+    // trend baseado na POSIÇÃO do histograma (acima ou abaixo de zero)
+    // — não na aceleração, que bloqueava sinais legítimos de reversão
+    // crossover = mudança de lado neste tick (sinal mais forte)
+    const crossover = (histogram > 0 && prevHistogram <= 0) || (histogram < 0 && prevHistogram >= 0);
     let trend = 'neutral';
-    if (histogram > 0 && histogram > prevHistogram) trend = 'bullish';
-    else if (histogram < 0 && histogram < prevHistogram) trend = 'bearish';
+    if (histogram > 0) trend = 'bullish';
+    else if (histogram < 0) trend = 'bearish';
 
     return {
-        macdLine: parseFloat(macdLine.toFixed(6)),
+        macdLine:  parseFloat(macdLine.toFixed(6)),
         signalLine: parseFloat(signalLine.toFixed(6)),
         histogram: parseFloat(histogram.toFixed(6)),
+        prevHistogram: parseFloat(prevHistogram.toFixed(6)),
+        crossover, // true = cruzou a linha zero neste tick
         trend,
     };
 }
@@ -1465,16 +1471,26 @@ function processTick(pair, price, source) {
         }
         if (!signalType) return;
 
-        // Filtro MM200
+        // Filtro MM200 — alinha sinal com tendência de longo prazo
+        // COMPRA só quando preço está ACIMA da MM200 (tendência de alta confirmada)
+        // VENDA  só quando preço está ABAIXO da MM200 (tendência de baixa confirmada)
+        // Zona NEAR (<0.3% de distância) = neutro, não bloqueia
         if (s.useMM200 && mm200) {
-            if (signalType === 'COMPRA' && mm200.trend === 'below') return;
-            if (signalType === 'VENDA'  && mm200.trend === 'above') return;
+            const dist = Math.abs(mm200.distance || 0);
+            if (dist > 0.3) {
+                if (signalType === 'COMPRA' && mm200.trend === 'below') return; // tendência baixa → não compra
+                if (signalType === 'VENDA'  && mm200.trend === 'above') return; // tendência alta  → não vende
+            }
         }
 
-        // Filtro MACD
+        // Filtro MACD — confirma momentum OU aceita crossover (reversão iniciando)
+        // Lógica: o Stoch RSI detecta reversões ANTES do MACD virar
+        // Por isso aceita: neutro, alinhado, OU cruzando a linha zero agora
+        // Só bloqueia quando MACD está consolidado na direção OPOSTA sem sinal de virada
         if (s.useMacd && macd) {
-            if (signalType === 'COMPRA' && macd.trend !== 'bullish') return;
-            if (signalType === 'VENDA'  && macd.trend !== 'bearish') return;
+            const opposite = (signalType === 'COMPRA' && macd.trend === 'bearish' && !macd.crossover) ||
+                             (signalType === 'VENDA'  && macd.trend === 'bullish' && !macd.crossover);
+            if (opposite) return;
         }
 
         // ── FILTROS AVANÇADOS ──────────────────────────────
@@ -1605,7 +1621,9 @@ function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stoch
     const macdCell = macd
         ? `<span class="macd-indicator">
             <span class="macd-bar" style="height:${Math.min(Math.abs(macd.histogram)*10000,14)+4}px; background:${macd.histogram>0?'var(--green)':'var(--red)'}"></span>
-            <span style="color:${macd.trend==='bullish'?'var(--green)':macd.trend==='bearish'?'var(--red)':'var(--text-dim)'}">${macd.trend==='bullish'?'↑':macd.trend==='bearish'?'↓':'—'}</span>
+            <span style="color:${macd.trend==='bullish'?'var(--green)':macd.trend==='bearish'?'var(--red)':'var(--text-dim)'}; font-weight:${macd.crossover?'700':'400'}">
+                ${macd.trend==='bullish'?'↑':macd.trend==='bearish'?'↓':'—'}${macd.crossover?' ✦':''}
+            </span>
            </span>`
         : '<span style="color:var(--text-dim)">—</span>';
 
@@ -2089,7 +2107,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v9.3</span>
+                <span>OP245-C v9.4</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -2123,7 +2141,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v9.3 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v9.4 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -2176,7 +2194,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v9.3 Engine_`;
+_OP245-C v9.4 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -2205,7 +2223,7 @@ ${direcao}
 📐 *Variação:* ${sinal}${variacao}%
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v9.3 Engine_`;
+_OP245-C v9.4 Engine_`;
 
     try {
         const encoded = encodeURIComponent(msg);
@@ -2772,7 +2790,7 @@ function init() {
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v9.3] Engine iniciada.');
+    console.log('[OP245-C v9.4] Engine iniciada.');
 }
 
 init();
