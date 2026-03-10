@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v9.0 | Engine</title>
+    <title>OP245-C Sinais v9.2 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -438,7 +438,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v9.0 ENGINE</span>
+        <span class="nav-version">SINAIS v9.2 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -821,7 +821,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v9.0 — ENGINE CORE
+//  OP245-C v9.2 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -1167,6 +1167,44 @@ async function populateHistoricalData() {
     }
 }
 
+// ── EXPONENTIAL BACKOFF ────────────────────────────────────
+// Tenta: 2s → 4s → 8s → 16s → 32s → desiste e cai para simulação
+const WS_BACKOFF = {
+    attempt:  0,
+    maxTries: 5,
+    baseMs:   2000,
+    timer:    null,
+
+    reset() {
+        this.attempt = 0;
+        if (this.timer) { clearTimeout(this.timer); this.timer = null; }
+    },
+
+    next(onRetry) {
+        if (this.attempt >= this.maxTries) {
+            console.warn('[WS] Máximo de tentativas atingido — caindo para simulação');
+            setApiStatus('error', 'WS falhou após 5 tentativas — usando simulação');
+            showErrorToast('WebSocket indisponível — modo simulação ativado');
+            STATE.apiMode = 'simulation';
+            startSimulationEngine();
+            this.reset();
+            return;
+        }
+
+        // delay = base * 2^attempt + jitter aleatório (±20%)
+        const exp    = this.baseMs * Math.pow(2, this.attempt);
+        const jitter = exp * (Math.random() * 0.4 - 0.2); // ±20%
+        const delay  = Math.round(exp + jitter);
+        this.attempt++;
+
+        const sec = (delay / 1000).toFixed(1);
+        console.log(`[WS] Tentativa ${this.attempt}/${this.maxTries} em ${sec}s`);
+        setApiStatus('connecting', `WS reconectando… tentativa ${this.attempt}/${this.maxTries} em ${sec}s`);
+
+        this.timer = setTimeout(onRetry, delay);
+    },
+};
+
 function connectWebSocket() {
     if (!STATE.apiKey) return;
     disconnectAllWS();
@@ -1175,6 +1213,8 @@ function connectWebSocket() {
 
     ws.onopen = () => {
         console.log('[WS] Conectado à TwelveData');
+        WS_BACKOFF.reset(); // conexão bem-sucedida — reseta o contador
+        setApiStatus('live', `API TwelveData conectada — ${STATE.selectedAssets.size} ativos`);
         const symbols = Array.from(STATE.selectedAssets)
             .map(a => SYMBOL_MAP[a] || a)
             .filter(Boolean);
@@ -1184,7 +1224,6 @@ function connectWebSocket() {
     ws.onmessage = (evt) => {
         try {
             const msg = JSON.parse(evt.data);
-            // Detecta evento de limite de quota no WS
             if (msg.event === 'error' && msg.message && msg.message.toLowerCase().includes('limit')) {
                 notifyApiLimit();
                 return;
@@ -1193,7 +1232,6 @@ function connectWebSocket() {
                 const internalKey = Object.keys(SYMBOL_MAP).find(k => SYMBOL_MAP[k] === msg.symbol) || msg.symbol;
                 if (STATE.marketData[internalKey] !== undefined) {
                     const price = parseFloat(msg.price);
-                    // Agrega tick no candle M1 (base) — indicadores calculados sobre M5/M10 pelo processTick
                     buildOHLCCandle(STATE.marketData[internalKey], price, 1);
                     STATE.apiLastUpdate = new Date();
                     updateApiTimestamp();
@@ -1207,13 +1245,17 @@ function connectWebSocket() {
 
     ws.onerror = (e) => {
         console.warn('[WS] Erro:', e);
-        setApiStatus('error', 'WS desconectado — tentando reconectar...');
+        // onclose sempre dispara após onerror — a reconexão fica só no onclose
     };
 
-    ws.onclose = () => {
-        if (STATE.apiMode === 'live') {
-            setTimeout(connectWebSocket, 5000); // Reconexão automática
+    ws.onclose = (evt) => {
+        if (STATE.apiMode !== 'live') return; // desconexão intencional — não reconecta
+        // Código 1008 = policy violation (ban/limite) — não tenta reconectar
+        if (evt.code === 1008) {
+            notifyApiLimit();
+            return;
         }
+        WS_BACKOFF.next(connectWebSocket);
     };
 
     STATE.wsConnections.set('main', ws);
@@ -1753,6 +1795,9 @@ function checkResults() {
         if (!STATE.stats.losses) STATE.stats.losses = 0;
         win ? STATE.stats.wins++ : STATE.stats.losses++;
 
+        // Envia resultado ao Telegram
+        sendTelegramResult(r, win, closePrice);
+
         // Alimenta o backtesting acumulado
         registerBacktestResult(r.pair, r.tf, win);
 
@@ -2037,7 +2082,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v9.0</span>
+                <span>OP245-C v9.2</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -2071,7 +2116,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v9.0 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v9.2 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -2124,9 +2169,43 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v9.0 Engine_`;
+_OP245-C v9.2 Engine_`;
 
     sendTelegramMessage(msg);
+}
+
+async function sendTelegramResult(r, win, closePrice) {
+    // Envia sempre para o grupo de resultados, independente do toggle de alertas
+    const RESULT_CHAT_ID = '-5246044452';
+    const { token } = STATE.telegram;
+    if (!token) return;
+
+    const emoji     = win ? '✅' : '❌';
+    const resultado = win ? 'WIN' : 'LOSS';
+    const direcao   = r.type === 'COMPRA' ? '📈 COMPRA' : '📉 VENDA';
+    const variacao  = ((closePrice - r.entryPrice) / r.entryPrice * 100).toFixed(4);
+    const sinal     = closePrice >= r.entryPrice ? '+' : '';
+
+    const msg =
+`${emoji} *RESULTADO: ${resultado}*
+
+📊 *Ativo:* ${r.pair}
+${direcao}
+⏱ *Timeframe:* ${r.tf}
+
+💰 *Entrada:* ${r.entryPrice}
+💵 *Fechamento:* ${closePrice}
+📐 *Variação:* ${sinal}${variacao}%
+
+🕐 _${new Date().toLocaleTimeString('pt-BR')}_
+_OP245-C v9.2 Engine_`;
+
+    try {
+        const encoded = encodeURIComponent(msg);
+        await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${RESULT_CHAT_ID}&text=${encoded}&parse_mode=Markdown`);
+    } catch(e) {
+        console.warn('[TG] Falha ao enviar resultado:', e.message);
+    }
 }
 
 
@@ -2686,7 +2765,7 @@ function init() {
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v9.0] Engine iniciada.');
+    console.log('[OP245-C v9.2] Engine iniciada.');
 }
 
 init();
