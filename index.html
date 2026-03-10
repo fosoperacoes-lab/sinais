@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v7.6 | Engine</title>
+    <title>OP245-C Sinais v7.7 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -418,7 +418,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v7.6 ENGINE</span>
+        <span class="nav-version">SINAIS v7.7 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -500,9 +500,9 @@
             <div class="tag-btn active" id="vela-prox" onclick="toggleVela('Próxima')">Próxima Vela</div>
         </div>
         <div class="chk-group">
-            <label class="chk-label"><input type="checkbox" id="chk-popup" checked onchange="settings.popup = this.checked"> Alertas Pop-up</label>
-            <label class="chk-label"><input type="checkbox" id="chk-fechamento" onchange="settings.confirmClose = this.checked"> Confirmar no Fechamento</label>
-            <label class="chk-label"><input type="checkbox" id="chk-macd" checked onchange="settings.useMacd = this.checked"> Filtro MACD ativo</label>
+            <label class="chk-label"><input type="checkbox" id="chk-popup" checked onchange="STATE.settings.popup = this.checked"> Alertas Pop-up</label>
+            <label class="chk-label"><input type="checkbox" id="chk-fechamento" onchange="STATE.settings.confirmClose = this.checked"> Confirmar no Fechamento</label>
+            <label class="chk-label"><input type="checkbox" id="chk-macd" checked onchange="STATE.settings.useMacd = this.checked"> Filtro MACD ativo</label>
             <label class="chk-label"><input type="checkbox" id="chk-stoch" checked onchange="STATE.settings.useStoch = this.checked"> Filtro Stoch RSI ativo</label>
             <label class="chk-label"><input type="checkbox" id="chk-mm200" checked onchange="STATE.settings.useMM200 = this.checked"> Filtro MM200 ativo</label>
             <label class="chk-label"><input type="checkbox" id="chk-ignore-otc" checked onchange="STATE.settings.ignoreOTC = this.checked"> Ignorar OTC</label>
@@ -537,40 +537,24 @@
 
     <div class="config-block">
         <div class="block-label">
-            RSI
+            Stochastic RSI
             <span id="ind-lock-msg" style="color:var(--yellow); font-size:12px; display:none; margin-left:4px;">[BLOQUEADO]</span>
         </div>
         <div class="slider-row">
-            <div class="slider-header"><span>Período:</span> <b id="val-rsi-p">14</b></div>
-            <input type="range" class="ind-slider" id="cfg-rsi-p" min="2" max="30" value="14" oninput="syncVal(this,'val-rsi-p')">
+            <div class="slider-header"><span>Período RSI:</span> <b id="val-rsi-p">14</b></div>
+            <input type="range" class="ind-slider" id="cfg-rsi-p" min="2" max="30" value="14" oninput="syncVal(this,'val-rsi-p'); STATE.params.rsiPeriod=+this.value; STATE.params.stochRsiPeriod=+this.value;">
         </div>
         <div class="slider-row">
-            <div class="slider-header"><span>Sobrecompra:</span> <b id="val-rsi-up">80</b></div>
-            <input type="range" class="ind-slider" id="cfg-rsi-up" min="50" max="100" value="80" oninput="syncVal(this,'val-rsi-up')">
-        </div>
-        <div class="slider-row">
-            <div class="slider-header"><span>Sobrevenda:</span> <b id="val-rsi-dw">20</b></div>
-            <input type="range" class="ind-slider" id="cfg-rsi-dw" min="0" max="50" value="20" oninput="syncVal(this,'val-rsi-dw')">
-        </div>
-    </div>
-
-    <div class="config-block">
-        <div class="block-label">Stochastic RSI</div>
-        <div class="slider-row">
-            <div class="slider-header"><span>Período RSI:</span> <b id="val-stoch-rsi">14</b></div>
-            <input type="range" class="ind-slider" id="cfg-stoch-rsi" min="5" max="30" value="14" oninput="syncVal(this,'val-stoch-rsi')">
-        </div>
-        <div class="slider-row">
-            <div class="slider-header"><span>Período Stoch:</span> <b id="val-stoch-k">14</b></div>
+            <div class="slider-header"><span>Período Stoch K:</span> <b id="val-stoch-k">14</b></div>
             <input type="range" class="ind-slider" id="cfg-stoch-k" min="5" max="30" value="14" oninput="syncVal(this,'val-stoch-k')">
         </div>
         <div class="slider-row">
-            <div class="slider-header"><span>Sobrecompra:</span> <b id="val-stoch-up">80</b></div>
-            <input type="range" class="ind-slider" id="cfg-stoch-up" min="60" max="100" value="80" oninput="syncVal(this,'val-stoch-up')">
+            <div class="slider-header"><span>Sobrecompra:</span> <b id="val-rsi-up">80</b></div>
+            <input type="range" class="ind-slider" id="cfg-rsi-up" min="60" max="100" value="80" oninput="syncVal(this,'val-rsi-up'); STATE.params.stochUp=+this.value;">
         </div>
         <div class="slider-row">
-            <div class="slider-header"><span>Sobrevenda:</span> <b id="val-stoch-dw">20</b></div>
-            <input type="range" class="ind-slider" id="cfg-stoch-dw" min="0" max="40" value="20" oninput="syncVal(this,'val-stoch-dw')">
+            <div class="slider-header"><span>Sobrevenda:</span> <b id="val-rsi-dw">20</b></div>
+            <input type="range" class="ind-slider" id="cfg-rsi-dw" min="0" max="40" value="20" oninput="syncVal(this,'val-rsi-dw'); STATE.params.stochDw=+this.value;">
         </div>
         <div id="stoch-status" style="margin-top:8px; font-size:13px; color:var(--text-dim); font-family:var(--font-mono);">—</div>
     </div>
@@ -614,6 +598,11 @@
 <main id="main">
     <div class="section-header">
         <h3>📊 Sinais &nbsp;<span id="stat-badges-tf"></span>&nbsp;<span id="stat-badges-vela"></span></h3>
+        <div style="display:flex; gap:6px; margin-left:auto;">
+            <button id="tab-sinais" onclick="switchTab('sinais')" style="background:var(--blue); border:none; color:#fff; padding:4px 14px; border-radius:3px; font-family:var(--font-mono); font-size:12px; cursor:pointer; font-weight:600;">SINAIS</button>
+            <button id="tab-log" onclick="switchTab('log')" style="background:var(--bg-card); border:1px solid var(--border2); color:var(--text-mid); padding:4px 14px; border-radius:3px; font-family:var(--font-mono); font-size:12px; cursor:pointer;">LOG</button>
+            <button onclick="exportLog()" style="background:var(--bg-card); border:1px solid var(--border2); color:var(--text-dim); padding:4px 10px; border-radius:3px; font-family:var(--font-mono); font-size:11px; cursor:pointer;" title="Exportar CSV">⬇ CSV</button>
+        </div>
     </div>
     <div class="stats-grid">
         <div class="stat-card s-total"><span>Total</span><h2 id="st-total">0</h2></div>
@@ -623,7 +612,9 @@
         <div class="stat-card s-pend"><span>Pendentes</span><h2 id="st-pend" style="color:var(--yellow)">0</h2></div>
         <div class="stat-card s-rate"><span>% Confirm.</span><h2 id="st-rate" style="color:var(--cyan)">0.0%</h2></div>
     </div>
-    <div class="table-section">
+
+    <!-- ABA SINAIS -->
+    <div id="panel-sinais" class="table-section">
         <table>
             <thead>
                 <tr>
@@ -643,11 +634,38 @@
             <tbody id="signal-rows"></tbody>
         </table>
     </div>
+
+    <!-- ABA LOG -->
+    <div id="panel-log" class="table-section" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border);">
+            <span style="font-size:12px; color:var(--text-dim);">Histórico completo da sessão — <span id="log-count">0</span> sinais</span>
+            <button onclick="clearLog()" style="background:transparent; border:1px solid var(--border2); color:var(--text-dim); padding:3px 10px; border-radius:3px; font-size:11px; cursor:pointer;">Limpar</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Hora</th>
+                    <th>Par</th>
+                    <th>Sinal</th>
+                    <th>TF</th>
+                    <th>Entrada</th>
+                    <th>Preço</th>
+                    <th>Stoch RSI</th>
+                    <th>MACD</th>
+                    <th>MM200</th>
+                    <th>Fonte</th>
+                </tr>
+            </thead>
+            <tbody id="log-rows"></tbody>
+        </table>
+        <div id="log-empty" style="text-align:center; padding:40px; color:var(--text-dim); font-size:13px;">Nenhum sinal registrado ainda.</div>
+    </div>
 </main>
 
 <script>
 // ============================================================
-//  OP245-C v7.6 — ENGINE CORE
+//  OP245-C v7.7 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -677,6 +695,9 @@ const STATE = {
 
     // Telegram
     telegram: { token: '8727416448:AAFEzWkfi0BUr1T0lX8cki8oK8C77qMiGFU', chatId: '-5198350830', active: false },
+
+    // Log de sinais da sessão
+    signalLog: [],
     isPaused: false,
     isMuted: false,
     stats: { total:0, buy:0, sell:0, conf:0, pend:0 },
@@ -1283,6 +1304,7 @@ function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stoch
     playSignalSound(type);
     if (STATE.settings.popup) showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source);
     sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200);
+    addToLog(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source);
 
     STATE.stats.total++;
     type === 'COMPRA' ? STATE.stats.buy++ : STATE.stats.sell++;
@@ -1540,17 +1562,17 @@ function setValues(p, up, dw, mf, ms, msig, srsiP, srsiK, srsiUp, srsiDw) {
         if (el) el.value = v;
         if (valEl) valEl.textContent = v;
     };
-    set('cfg-rsi-p','val-rsi-p',p);       STATE.params.rsiPeriod  = p;
-    set('cfg-rsi-up','val-rsi-up',up);    STATE.params.rsiUp      = up;
-    set('cfg-rsi-dw','val-rsi-dw',dw);    STATE.params.rsiDw      = dw;
-    set('cfg-macd-f','val-macd-f',mf);    STATE.params.macdFast   = mf;
-    set('cfg-macd-s','val-macd-s',ms);    STATE.params.macdSlow   = ms;
-    set('cfg-macd-sig','val-macd-sig',msig); STATE.params.macdSignal = msig;
-    // Stoch RSI
-    set('cfg-stoch-rsi','val-stoch-rsi', srsiP);  STATE.params.stochRsiPeriod = srsiP;
-    set('cfg-stoch-k',  'val-stoch-k',   srsiK);  STATE.params.stochKPeriod   = srsiK;
-    set('cfg-stoch-up', 'val-stoch-up',  srsiUp);  STATE.params.stochUp        = srsiUp;
-    set('cfg-stoch-dw', 'val-stoch-dw',  srsiDw);  STATE.params.stochDw        = srsiDw;
+    // RSI e Stoch RSI compartilham os mesmos sliders agora
+    set('cfg-rsi-p',  'val-rsi-p',  p);   STATE.params.rsiPeriod      = p;
+                                           STATE.params.stochRsiPeriod = p; // sincroniza
+    set('cfg-rsi-up', 'val-rsi-up', up);  STATE.params.rsiUp          = up;
+                                           STATE.params.stochUp        = up;
+    set('cfg-rsi-dw', 'val-rsi-dw', dw);  STATE.params.rsiDw          = dw;
+                                           STATE.params.stochDw        = dw;
+    set('cfg-stoch-k','val-stoch-k', srsiK); STATE.params.stochKPeriod = srsiK;
+    set('cfg-macd-f', 'val-macd-f',  mf);  STATE.params.macdFast      = mf;
+    set('cfg-macd-s', 'val-macd-s',  ms);  STATE.params.macdSlow      = ms;
+    set('cfg-macd-sig','val-macd-sig',msig); STATE.params.macdSignal   = msig;
 }
 
 // Presets por TF: (rsiP, rsiUp, rsiDw, macdF, macdS, macdSig, stochRsiP, stochKP, stochUp, stochDw)
@@ -1663,7 +1685,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v7.6</span>
+                <span>OP245-C v7.7</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -1697,7 +1719,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v7.6 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v7.7 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -1750,11 +1772,84 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v7.6 Engine_`;
+_OP245-C v7.7 Engine_`;
 
     sendTelegramMessage(msg);
 }
 
+
+// ── LOG DE SINAIS ──────────────────────────────────────────
+
+function switchTab(tab) {
+    const isSinais = tab === 'sinais';
+    document.getElementById('panel-sinais').style.display = isSinais ? '' : 'none';
+    document.getElementById('panel-log').style.display    = isSinais ? 'none' : '';
+    document.getElementById('tab-sinais').style.cssText   += isSinais ? ';background:var(--blue);color:#fff;border:none' : ';background:var(--bg-card);color:var(--text-mid);border:1px solid var(--border2)';
+    document.getElementById('tab-log').style.cssText      += isSinais ? ';background:var(--bg-card);color:var(--text-mid);border:1px solid var(--border2)' : ';background:var(--blue);color:#fff;border:none';
+}
+
+function addToLog(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source) {
+    const entry = {
+        n:       STATE.signalLog.length + 1,
+        hora:    new Date().toLocaleTimeString('pt-BR'),
+        pair, type, tf,
+        entrada: velaType === 'Atual' ? 'Atual' : candleTime,
+        price,
+        stoch:   stochVal,
+        macd:    macd  ? (macd.trend  === 'bullish' ? '↑' : macd.trend === 'bearish' ? '↓' : '—') : '—',
+        mm200:   mm200 ? (mm200.trend === 'above'   ? '▲' : mm200.trend === 'below'  ? '▼' : '≈') : '—',
+        source,
+    };
+    STATE.signalLog.unshift(entry);
+
+    const tbody = document.getElementById('log-rows');
+    const empty = document.getElementById('log-empty');
+    const count = document.getElementById('log-count');
+    if (!tbody) return;
+
+    if (empty) empty.style.display = 'none';
+    if (count) count.textContent = STATE.signalLog.length;
+
+    const macdColor  = entry.macd === '↑' ? 'var(--green)' : entry.macd === '↓' ? 'var(--red)' : 'var(--text-dim)';
+    const mm200Color = entry.mm200 === '▲' ? 'var(--green)' : entry.mm200 === '▼' ? 'var(--red)' : 'var(--text-dim)';
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td style="color:var(--text-dim);font-family:var(--font-mono)">${entry.n}</td>
+        <td style="color:var(--text-mid);font-family:var(--font-mono)">${entry.hora}</td>
+        <td><b style="color:var(--text-main)">${entry.pair}</b></td>
+        <td><span class="${type==='COMPRA'?'badge-buy':'badge-sell'}">${entry.type}</span></td>
+        <td><span class="badge-tf">${entry.tf}</span></td>
+        <td style="font-family:var(--font-mono);color:white">${entry.entrada}</td>
+        <td style="font-family:var(--font-mono);color:var(--text-mid)">${entry.price}</td>
+        <td style="color:var(--text-mid)">${entry.stoch}</td>
+        <td style="color:${macdColor}">${entry.macd}</td>
+        <td style="color:${mm200Color}">${entry.mm200}</td>
+        <td><span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE':'SIM'}</span></td>`;
+    tbody.insertBefore(row, tbody.firstChild);
+    if (tbody.children.length > 200) tbody.removeChild(tbody.lastChild);
+}
+
+function clearLog() {
+    STATE.signalLog = [];
+    document.getElementById('log-rows').innerHTML = '';
+    const empty = document.getElementById('log-empty');
+    const count = document.getElementById('log-count');
+    if (empty) empty.style.display = '';
+    if (count) count.textContent = '0';
+}
+
+function exportLog() {
+    if (STATE.signalLog.length === 0) { showErrorToast('Nenhum sinal para exportar'); return; }
+    const header = '#,Hora,Par,Sinal,TF,Entrada,Preço,Stoch RSI,MACD,MM200,Fonte\n';
+    const rows   = [...STATE.signalLog].reverse().map(e =>
+        `${e.n},${e.hora},${e.pair},${e.type},${e.tf},${e.entrada},${e.price},${e.stoch},${e.macd},${e.mm200},${e.source}`
+    ).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `op245c-log-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+}
 
 function init() {
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.add('hidden');
@@ -1819,7 +1914,7 @@ function init() {
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v7.6] Engine iniciada.');
+    console.log('[OP245-C v7.7] Engine iniciada.');
 }
 
 init();
