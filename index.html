@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v8.4 | Engine</title>
+    <title>OP245-C Sinais v8.5 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -418,7 +418,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v8.4 ENGINE</span>
+        <span class="nav-version">SINAIS v8.5 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -443,6 +443,8 @@
 
 <!-- ── SIDEBAR ── -->
 <aside id="sidebar">
+
+    <!-- 1. FONTE DE DADOS -->
     <div class="config-block">
         <div class="block-label">Fonte de Dados</div>
         <div style="margin-top:6px;">
@@ -467,6 +469,7 @@
         </div>
     </div>
 
+    <!-- 2. TELEGRAM -->
     <div class="config-block">
         <div class="block-label">Telegram</div>
         <div style="margin-top:6px;">
@@ -493,55 +496,7 @@
         </div>
     </div>
 
-    <div class="config-block">
-        <div class="block-label">Filtro de Vela</div>
-        <div class="grid-tags grid-2">
-            <div class="tag-btn active" id="vela-atual" onclick="toggleVela('Atual')">Vela Atual</div>
-            <div class="tag-btn active" id="vela-prox" onclick="toggleVela('Próxima')">Próxima Vela</div>
-        </div>
-        <div class="chk-group">
-            <label class="chk-label"><input type="checkbox" id="chk-popup" checked onchange="STATE.settings.popup = this.checked"> Alertas Pop-up</label>
-            <label class="chk-label"><input type="checkbox" id="chk-macd" checked onchange="STATE.settings.useMacd = this.checked"> Filtro MACD ativo</label>
-            <label class="chk-label"><input type="checkbox" id="chk-stoch" checked onchange="STATE.settings.useStoch = this.checked"> Filtro Stoch RSI ativo</label>
-            <label class="chk-label"><input type="checkbox" id="chk-mm200" checked onchange="STATE.settings.useMM200 = this.checked"> Filtro MM200 ativo</label>
-            <label class="chk-label"><input type="checkbox" id="chk-ignore-otc" checked onchange="STATE.settings.ignoreOTC = this.checked"> Ignorar OTC</label>
-        </div>
-
-        <div style="margin-top:10px;">
-            <div class="block-label" style="margin-bottom:6px; font-size:11px;">Modo de Confirmação</div>
-            <div style="display:flex; flex-direction:column; gap:5px;">
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:4px; border:1px solid var(--border2); background:var(--bg-card);">
-                    <input type="radio" name="confirm-mode" value="none" checked onchange="setConfirmMode(this.value)"
-                        style="accent-color:var(--blue);">
-                    <span style="font-size:12px; color:var(--text-mid); font-family:var(--font-mono);">
-                        <b style="color:var(--text-main)">Sem confirmação</b>
-                        <span style="color:var(--text-dim)"> — sinal imediato ✓</span>
-                    </span>
-                </label>
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:4px; border:1px solid var(--border2); background:var(--bg-card);">
-                    <input type="radio" name="confirm-mode" value="open" onchange="setConfirmMode(this.value)"
-                        style="accent-color:var(--blue);">
-                    <span style="font-size:12px; color:var(--text-mid); font-family:var(--font-mono);">
-                        <b style="color:var(--text-main)">Na abertura</b>
-                        <span style="color:var(--text-dim)"> — entra quando a vela abre</span>
-                    </span>
-                </label>
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:4px; border:1px solid var(--border2); background:var(--bg-card);">
-                    <input type="radio" name="confirm-mode" value="tick" onchange="setConfirmMode(this.value)"
-                        style="accent-color:var(--blue);">
-                    <span style="font-size:12px; color:var(--text-mid); font-family:var(--font-mono);">
-                        <b style="color:var(--text-main)">Próximo tick</b>
-                        <span style="color:var(--text-dim)"> — confirma se Stoch ainda na zona</span>
-                    </span>
-                </label>
-            </div>
-        </div>
-        <div id="otc-status-bar" style="display:none; margin-top:10px; padding:8px 10px; border-radius:4px; background:rgba(255,204,0,0.07); border:1px solid rgba(255,204,0,0.3);">
-            <div style="font-size:11px; color:var(--yellow); font-weight:700; margin-bottom:4px;">⚠ MERCADO OTC ATIVO</div>
-            <div id="otc-status-text" style="font-size:10px; color:var(--text-dim); line-height:1.5;"></div>
-        </div>
-    </div>
-
+    <!-- 3. TIMEFRAME -->
     <div class="config-block">
         <div class="block-label">Timeframe</div>
         <div class="grid-tags grid-4" style="margin-bottom:4px;">
@@ -553,6 +508,55 @@
         <div class="tag-btn" id="btn-todas-tf" onclick="toggleAllTF()" style="width:100%; display:block; padding:6px 0; margin-top:4px;">Todas</div>
     </div>
 
+    <!-- 4. FILTRO DE VELA -->
+    <div class="config-block">
+        <div class="block-label">Filtro de Vela</div>
+        <div class="grid-tags grid-2">
+            <div class="tag-btn active" id="vela-atual" onclick="toggleVela('Atual')">Vela Atual</div>
+            <div class="tag-btn active" id="vela-prox" onclick="toggleVela('Próxima')">Próxima Vela</div>
+        </div>
+        <div class="chk-group" style="margin-top:8px;">
+            <label class="chk-label"><input type="checkbox" id="chk-popup" checked onchange="STATE.settings.popup = this.checked"> Alertas Pop-up</label>
+            <label class="chk-label"><input type="checkbox" id="chk-macd" checked onchange="STATE.settings.useMacd = this.checked"> Filtro MACD ativo</label>
+            <label class="chk-label"><input type="checkbox" id="chk-stoch" checked onchange="STATE.settings.useStoch = this.checked"> Filtro Stoch RSI ativo</label>
+            <label class="chk-label"><input type="checkbox" id="chk-mm200" checked onchange="STATE.settings.useMM200 = this.checked"> Filtro MM200 ativo</label>
+            <label class="chk-label"><input type="checkbox" id="chk-ignore-otc" checked onchange="STATE.settings.ignoreOTC = this.checked"> Ignorar OTC</label>
+        </div>
+        <div id="otc-status-bar" style="display:none; margin-top:10px; padding:8px 10px; border-radius:4px; background:rgba(255,204,0,0.07); border:1px solid rgba(255,204,0,0.3);">
+            <div style="font-size:11px; color:var(--yellow); font-weight:700; margin-bottom:4px;">⚠ MERCADO OTC ATIVO</div>
+            <div id="otc-status-text" style="font-size:10px; color:var(--text-dim); line-height:1.5;"></div>
+        </div>
+    </div>
+
+    <!-- 5. MODO DE CONFIRMAÇÃO -->
+    <div class="config-block">
+        <div class="block-label">Modo de Confirmação</div>
+        <div style="display:flex; flex-direction:column; gap:5px; margin-top:8px;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:4px; border:1px solid var(--border2); background:var(--bg-card);">
+                <input type="radio" name="confirm-mode" value="none" checked onchange="setConfirmMode(this.value)" style="accent-color:var(--blue);">
+                <span style="font-size:12px; font-family:var(--font-mono);">
+                    <b style="color:var(--text-main)">Sem confirmação</b>
+                    <span style="color:var(--text-dim)"> — sinal imediato ✓</span>
+                </span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:4px; border:1px solid var(--border2); background:var(--bg-card);">
+                <input type="radio" name="confirm-mode" value="open" onchange="setConfirmMode(this.value)" style="accent-color:var(--blue);">
+                <span style="font-size:12px; font-family:var(--font-mono);">
+                    <b style="color:var(--text-main)">Na abertura</b>
+                    <span style="color:var(--text-dim)"> — entra quando a vela abre</span>
+                </span>
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:4px; border:1px solid var(--border2); background:var(--bg-card);">
+                <input type="radio" name="confirm-mode" value="tick" onchange="setConfirmMode(this.value)" style="accent-color:var(--blue);">
+                <span style="font-size:12px; font-family:var(--font-mono);">
+                    <b style="color:var(--text-main)">Próximo tick</b>
+                    <span style="color:var(--text-dim)"> — confirma se Stoch ainda na zona</span>
+                </span>
+            </label>
+        </div>
+    </div>
+
+    <!-- 6. PARES MONITORADOS -->
     <div class="config-block">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <div class="block-label" style="margin-bottom:0">Pares Monitorados</div>
@@ -564,6 +568,7 @@
         <div class="grid-tags grid-3" id="asset-selector"></div>
     </div>
 
+    <!-- 7. STOCHASTIC RSI -->
     <div class="config-block">
         <div class="block-label">
             Stochastic RSI
@@ -588,16 +593,7 @@
         <div id="stoch-status" style="margin-top:8px; font-size:13px; color:var(--text-dim); font-family:var(--font-mono);">—</div>
     </div>
 
-    <div class="config-block">
-        <div class="block-label">Média Móvel 200</div>
-        <div style="margin-top:8px; font-size:13px; color:var(--text-dim); line-height:1.6;">
-            Filtra sinais contra a tendência macro.<br>
-            <span style="color:var(--green)">COMPRA</span> só acima da MM200<br>
-            <span style="color:var(--red)">VENDA</span> só abaixo da MM200
-        </div>
-        <div id="mm200-status" style="margin-top:10px; font-size:13px; font-family:var(--font-mono); color:var(--text-dim);">—</div>
-    </div>
-
+    <!-- 8. MACD -->
     <div class="config-block">
         <div class="block-label">MACD</div>
         <div class="slider-row">
@@ -615,12 +611,25 @@
         <div id="macd-status" style="margin-top:8px; font-size:13px; color:var(--text-dim); font-family:var(--font-mono);">—</div>
     </div>
 
+    <!-- 9. MÉDIA MÓVEL 200 -->
+    <div class="config-block">
+        <div class="block-label">Média Móvel 200</div>
+        <div style="margin-top:8px; font-size:13px; color:var(--text-dim); line-height:1.6;">
+            Filtra sinais contra a tendência macro.<br>
+            <span style="color:var(--green)">COMPRA</span> só acima da MM200<br>
+            <span style="color:var(--red)">VENDA</span> só abaixo da MM200
+        </div>
+        <div id="mm200-status" style="margin-top:10px; font-size:13px; font-family:var(--font-mono); color:var(--text-dim);">—</div>
+    </div>
+
+    <!-- 10. STATUS DO MERCADO -->
     <div class="config-block">
         <div class="block-label">Status do Mercado</div>
         <div id="market-status-grid" style="margin-top:8px; display:flex; flex-direction:column; gap:4px;">
             <!-- preenchido por updateMarketStatusPanel() -->
         </div>
     </div>
+
 </aside>
 
 <!-- ── MAIN ── -->
@@ -694,7 +703,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v8.4 — ENGINE CORE
+//  OP245-C v8.5 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -1799,7 +1808,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v8.4</span>
+                <span>OP245-C v8.5</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -1833,7 +1842,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v8.4 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v8.5 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -1886,7 +1895,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v8.4 Engine_`;
+_OP245-C v8.5 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -2028,7 +2037,7 @@ function init() {
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v8.4] Engine iniciada.');
+    console.log('[OP245-C v8.5] Engine iniciada.');
 }
 
 init();
