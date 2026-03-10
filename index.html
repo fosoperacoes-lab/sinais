@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v7.5 | Engine</title>
+    <title>OP245-C Sinais v7.6 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -418,7 +418,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v7.5 ENGINE</span>
+        <span class="nav-version">SINAIS v7.6 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -647,7 +647,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v7.5 — ENGINE CORE
+//  OP245-C v7.6 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -1132,19 +1132,24 @@ function updateMarketStatusPanel() {
 
 function updateOTCStatusBar() {
     const bar = document.getElementById('otc-status-bar');
+    const txt = document.getElementById('otc-status-text');
+    if (!bar || !txt) return;
+
+    const otcNow = Object.keys(OTC_CLOSE_HOUR).filter(p => isMarketOTC(p));
 
     if (otcNow.length > 0 && STATE.settings.ignoreOTC) {
         bar.style.display = 'block';
-        // Monta lista com horário de reabertura de cada par
+        const titulo = bar.querySelector('div:first-child');
+        if (titulo) titulo.textContent = '⚠ MERCADO OTC ATIVO';
         const lista = otcNow.map(p => {
             const fechaH = OTC_CLOSE_HOUR[p];
-            return `<span style="color:var(--yellow)">${p}</span> <span style="color:var(--text-dim)">(fecha Sex ${fechaH}h)</span>`;
+            return `<span style="color:var(--yellow)">${p}</span> <span style="color:var(--text-dim)">(fecha Sex ${fechaH}h BRT)</span>`;
         }).join('<br>');
-        txt.innerHTML = `${lista}<br><span style="color:var(--text-dim); margin-top:4px; display:block;">↩ Reabre Dom 22h BRT</span>`;
+        txt.innerHTML = `${lista}<br><span style="color:var(--text-dim);margin-top:4px;display:block;">↩ Reabre Dom 22h BRT</span>`;
     } else if (otcNow.length > 0 && !STATE.settings.ignoreOTC) {
-        // Avisa que há pares em OTC mas o filtro está desativado
         bar.style.display = 'block';
-        document.querySelector('#otc-status-bar div:first-child').textContent = '⚠ PARES EM OTC (filtro desativado)';
+        const titulo = bar.querySelector('div:first-child');
+        if (titulo) titulo.textContent = '⚠ PARES EM OTC (filtro desativado)';
         txt.innerHTML = `<span style="color:var(--text-dim)">Ative "Ignorar OTC" para bloquear sinais desses pares.</span>`;
     } else {
         bar.style.display = 'none';
@@ -1658,7 +1663,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v7.5</span>
+                <span>OP245-C v7.6</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -1692,7 +1697,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v7.5 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v7.6 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -1745,7 +1750,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v7.5 Engine_`;
+_OP245-C v7.6 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -1814,7 +1819,7 @@ function init() {
     startSimulationEngine();
     setTimeout(() => connectRealData(), 800);
 
-    console.log('[OP245-C v7.5] Engine iniciada.');
+    console.log('[OP245-C v7.6] Engine iniciada.');
 }
 
 init();
