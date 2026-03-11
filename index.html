@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v9.9 | Engine</title>
+    <title>OP245-C Sinais v10.2 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -471,7 +471,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v9.9 ENGINE</span>
+        <span class="nav-version">SINAIS v10.2 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -572,6 +572,17 @@
             <label class="chk-label"><input type="checkbox" id="chk-macd" checked onchange="STATE.settings.useMacd = this.checked"> Filtro MACD ativo</label>
             <label class="chk-label"><input type="checkbox" id="chk-stoch" checked onchange="STATE.settings.useStoch = this.checked"> Filtro Stoch RSI ativo</label>
             <label class="chk-label"><input type="checkbox" id="chk-ignore-otc" checked onchange="STATE.settings.ignoreOTC = this.checked"> Ignorar OTC</label>
+            <label class="chk-label" title="CSV: EUR/USD M1=32% · XAUUSD M1=43% — M1 só para BTC/USD (75%)"><input type="checkbox" id="chk-block-m1" checked onchange="STATE.settings.blockM1NonCrypto = this.checked"> <span>🔒 Bloquear M1 não-cripto</span></label>
+            <label class="chk-label" title="CSV: 01h BRT = 31% WIN — mercado asiático lateral"><input type="checkbox" id="chk-asia-dead" checked onchange="STATE.settings.blockAsiaDeadZone = this.checked"> <span>🌙 Bloquear zona morta 01h</span></label>
+        </div>
+        <div style="margin-top:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <span style="font-size:11px; color:var(--text-main); font-family:var(--font-mono);">🎯 Score mínimo</span>
+                <span style="font-size:12px; font-weight:700; color:var(--blue); font-family:var(--font-mono);" id="val-score-thr">6</span>
+            </div>
+            <input type="range" class="ind-slider" id="cfg-score-thr" min="0" max="12" value="6"
+                oninput="STATE.settings.scoreThreshold=+this.value; document.getElementById('val-score-thr').textContent=this.value==='0'?'OFF':this.value;">
+            <div style="font-size:10px; color:var(--text-dim); margin-top:3px;">0 = desativado · 6 = padrão · 9 = muito seletivo</div>
         </div>
         <div id="otc-status-bar" style="display:none; margin-top:10px; padding:8px 10px; border-radius:4px; background:rgba(255,204,0,0.07); border:1px solid rgba(255,204,0,0.3);">
             <div style="font-size:11px; color:var(--yellow); font-weight:700; margin-bottom:4px;">⚠ MERCADO OTC ATIVO</div>
@@ -858,7 +869,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v9.9 — ENGINE CORE
+//  OP245-C v10.2 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -887,13 +898,18 @@ const STATE = {
     settings: {
         popup: true, confirmClose: false, confirmMode: 'none',
         useMacd: true, useStoch: true, useMM200: true, ignoreOTC: true,
-        // Filtros avançados
-        useLiquidity:   false,  // Filtro de horário de liquidez
-        useNews:        false,  // Filtro de notícias econômicas
-        useMultiTF:     false,  // Confluência multi-TF
-        useVolatility:  false,  // Filtro de volatilidade (ATR)
-        useBacktest:    false,  // Backtesting acumulado
-        atrMultiplier:  1.5,    // ATR: bloqueia se volatilidade > X * ATR médio
+        useLiquidity: false, useNews: false, useMultiTF: false,
+        useVolatility: false, useBacktest: false, atrMultiplier: 1.5,
+        // v10.2 — threshold histograma MACD por categoria (CSV: MACD nao discrimina sozinho)
+        macdHistThreshold: { forex: 0.0003, commodity: 0.08, crypto: 8.0 },
+        // v10.2 — bloqueia M1 forex/commodity (EUR/USD M1=32%, XAUUSD M1=43% no CSV)
+        blockM1NonCrypto: true,
+        // v10.2 — bloqueia 01h BRT (31% WIN no CSV — mercado asiatico lateral)
+        blockAsiaDeadZone: true,
+        // v10.2 — Stoch 0-5 foi 38.7% WIN; eleva zona minima para 5
+        stochMinZone: 5,
+        // v10.2 — Score mínimo para sinal disparar (0 = desativado)
+        scoreThreshold: 6,
     },
 
     // Telegram
@@ -1499,7 +1515,7 @@ function processTick(pair, price, source) {
         // ── FILTRO MM200 (removido — ineficaz em M5) ──────────
         // MM200 calculado sobre velas M5 representa apenas ~16h — não é tendência macro.
         // Zona NEAR aparecia em 40% dos sinais, inutilizando o filtro.
-        // Removido em v9.9. MACD cobre a direção de momentum.
+        // Removido em v10.2. MACD cobre a direção de momentum.
 
         // ── FILTRO DE MOMENTUM: Stoch extremo + MACD virando ──
         // Insight do analista: o motor opera reversões cedo demais.
@@ -1521,7 +1537,12 @@ function processTick(pair, price, source) {
             // Se o histograma existe e está indo contra o sinal com força, bloqueia
             // (histograma muito negativo para COMPRA = ainda caindo com força)
             if (macd.histogram !== undefined) {
-                const histStrong = Math.abs(macd.histogram) > 0.0003; // threshold para forex; ajustável
+                // v10.2 — threshold por categoria (forex/commodity/crypto têm escalas diferentes)
+                const thr = s.macdHistThreshold || {};
+                const histThreshold = CRYPTO_PAIRS.has(pair)    ? (thr.crypto    ?? 8.0)
+                                    : COMMODITY_PAIRS.has(pair)  ? (thr.commodity ?? 0.08)
+                                    : (thr.forex ?? 0.0003);
+                const histStrong = Math.abs(macd.histogram) > histThreshold;
                 if (histStrong) {
                     if (signalType === 'COMPRA' && macd.histogram < 0 && !macd.crossover) return;
                     if (signalType === 'VENDA'  && macd.histogram > 0 && !macd.crossover) return;
@@ -1550,20 +1571,112 @@ function processTick(pair, price, source) {
 
         const stochVal = stoch ? stoch.k : calculateRSI(cls, p.rsiPeriod);
 
-        // ── FILTRO ANTI-SATURAÇÃO ──────────────────────────
+        // ── FILTRO ANTI-SATURAÇÃO + ZONA MÍNIMA (v10.2) ──────
+        // Stoch = 0|100: saturação — não confiável
+        // Stoch 0-5 no CSV = 38.7% WIN (pior que aleatório) → eleva mínimo para 5
         if (stochVal === 0 || stochVal === 100) return;
+        const minZ = s.stochMinZone ?? 5;
+        if (signalType === 'COMPRA' && stochVal < minZ) return;
+        if (signalType === 'VENDA'  && stochVal > (100 - minZ)) return;
 
-        // ── LOCK DEFINITIVO: chave = par_TF apenas ─────────
-        // TTL = duração exata da vela em ms
-        // Não importa se vela é "Atual" ou "Próxima" — mesmo par+TF = mesmo lock
-        // Isso elimina duplicatas independente de quantos ticks chegam
+        // ── FILTRO M1 NÃO-CRIPTO (v10.2) ───────────────────
+        // CSV: EUR/USD M1=32%, XAUUSD M1=43% → M1 em forex/commodity é ruído puro
+        // BTC/USD M1=75% → cripto tem volatilidade suficiente para M1
+        if (s.blockM1NonCrypto && tf === 'M1') {
+            if (!CRYPTO_PAIRS.has(pair)) return;
+        }
+
+        // ── FILTRO ZONA MORTA ASIÁTICA (v10.2) ─────────────
+        // CSV: 01h BRT = 31% WIN — mercado asiático lateral destrói o motor
+        // Bloqueia 01:00-01:59 BRT
+        if (s.blockAsiaDeadZone) {
+            const brt = getBRTTime();
+            if (brt.getHours() === 1) return;
+        }
+
+        // ── SCORE ENGINE (v10.2) ─────────────────────────────
+        // Cada condição confirmada adiciona pontos.
+        // Sinal só dispara se score >= threshold (padrão 6).
+        // Calibrado nos dados reais: padrões ≥65% WIN têm pelo menos 2 condições fortes.
+        //
+        // Pesos baseados nos dados do CSV:
+        //   Stoch extremo (≤10/≥90)          +2   base de qualquer sinal
+        //   Stoch muito extremo (≤5/≥95)      +1   adicional — 53% vs 51% no CSV
+        //   MACD crossover (virada real)       +3   maior discriminador individual
+        //   MACD alinhado (sem crossover)      +1   confirma direção mas não garante
+        //   MACD contra + Stoch ≥95 XAUUSD    +2   padrão ouro: 73% WIN no CSV
+        //   Multi-TF alinhado                  +2   quando ativo
+        //   Volatilidade adequada (ATR ok)     +1   não bloqueado pelo filtro
+        //   BTC/USD                            +1   melhor ativo (55.5% geral)
+        //   EUR/USD PENALIDADE                 -1   pior ativo (45.6% geral)
+
+        let score = 0;
+        const scoreLog = [];
+
+        // Stoch extremo base
+        const stochExtreme     = (signalType==='COMPRA' && stochVal<=10) || (signalType==='VENDA' && stochVal>=90);
+        const stochVeryExtreme = (signalType==='COMPRA' && stochVal<=5)  || (signalType==='VENDA' && stochVal>=95);
+        if (stochExtreme)     { score += 2; scoreLog.push('Stoch≥90+2'); }
+        if (stochVeryExtreme) { score += 1; scoreLog.push('Stoch≥95+1'); }
+
+        // MACD
+        if (macd) {
+            if (macd.crossover) {
+                score += 3; scoreLog.push('MACD_cross+3');
+            } else {
+                const macdAligned = (signalType==='COMPRA' && macd.trend==='bullish') ||
+                                    (signalType==='VENDA'  && macd.trend==='bearish');
+                if (macdAligned) { score += 1; scoreLog.push('MACD_alin+1'); }
+            }
+
+            // Padrão especial XAUUSD: VENDA com MACD↑ = 73% WIN no CSV
+            // COMPRA com MACD↓ = 67% WIN — o ouro se reverte contra o momentum
+            const xauPattern = pair === 'XAUUSD' && stochVeryExtreme && (
+                (signalType==='VENDA'  && macd.trend==='bullish') ||
+                (signalType==='COMPRA' && macd.trend==='bearish')
+            );
+            if (xauPattern) { score += 2; scoreLog.push('XAU_pat+2'); }
+        }
+
+        // Multi-TF alinhado — usa o TF maior disponível como referência
+        // Se M10 selecionado: usa M10. Se não, usa M5. Assim EUR/USD funciona com M5+M1.
+        const tfsActive = Array.from(STATE.selectedTFs).map(t => parseInt(t.replace('M',''))).sort((a,b) => b-a);
+        const trendTFLabel = tfsActive.length > 0 ? `M${tfsActive[0]}` : 'M10';
+        const trendTFRef   = tfsActive.length > 1 ? `M${tfsActive[0]}` : null; // só faz sentido com 2+ TFs
+        const refDir = trendTFRef ? (multiTFTrend[`${pair}_${trendTFRef}`] || multiTFSignals[`${pair}_${trendTFRef}`]) : null;
+
+        if (refDir && refDir === signalType) { score += 2; scoreLog.push(`${trendTFRef}_alin+2`); }
+
+        // Volatilidade ok (ATR não bloqueado)
+        if (!isVolatilityBlocked(pair)) { score += 1; scoreLog.push('ATR_ok+1'); }
+
+        // Bônus/penalidade por par
+        if (CRYPTO_PAIRS.has(pair))   { score += 1; scoreLog.push('Crypto+1'); }
+        if (pair === 'EUR/USD')        { score -= 1; scoreLog.push('EURUSD-1'); }
+
+        // EUR/USD: exige confluência do TF maior disponível (M10 ou M5)
+        // Se nenhum TF maior registrou direção ainda, bloqueia — evita ruído no início
+        if (pair === 'EUR/USD' && !refDir) return;
+
+        const scoreThreshold = s.scoreThreshold ?? 6;
+        if (score < scoreThreshold) {
+            console.log(`[SCORE] ${pair} ${tf} ${signalType} bloqueado: ${score}/${scoreThreshold} [${scoreLog.join(', ')}]`);
+            return;
+        }
+        console.log(`[SCORE] ${pair} ${tf} ${signalType} APROVADO: ${score}/${scoreThreshold} [${scoreLog.join(', ')}]`);
+
+        // ── LOCK v10.2: TTL = 2× duração da vela ──────────
+        // CSV mostrou 86 sinais duplicados (< 60s no mesmo par+TF)
+        // Causa: TTL expirava exatamente na virada de vela e o próximo tick re-disparava
+        // Solução: TTL = 2 × tfMs garante que não repete na vela atual nem na próxima
         const now    = Date.now();
         const tfMs   = parseInt(tf.replace('M','')) * 60 * 1000;
+        const lockTTL = tfMs * 2; // 2 velas de buffer anti-duplicata
         const signalKey = `${pair}_${tf}`;
 
-        // Limpa locks expirados (TTL = 1 vela completa)
+        // Limpa locks expirados
         STATE.lockedSignals.forEach((entry, key) => {
-            if (now - entry.ts > tfMs) STATE.lockedSignals.delete(key);
+            if (now - entry.ts > lockTTL) STATE.lockedSignals.delete(key);
         });
 
         const existing = STATE.lockedSignals.get(signalKey);
@@ -1575,7 +1688,7 @@ function processTick(pair, price, source) {
 
         if (existing) {
             if (existing.type !== signalType) return; // direção oposta → bloqueia
-            if (force <= existing.force + 5) return;  // não é mais forte → bloqueia
+            if (force <= existing.force + 10) return; // threshold de força elevado (era +5)
             const oldRow = document.getElementById(existing.rowId);
             if (oldRow) oldRow.remove();
         }
@@ -1586,7 +1699,7 @@ function processTick(pair, price, source) {
         const candleTime = getCandleTime(tf, velaType);
 
         STATE.lockedSignals.set(signalKey, { ts: now, force, type: signalType, rowId: `row-${STATE.rowCounter + 1}` });
-        dispatchVisualSignal(pair, signalType, tf, velaType, candleTime, price.toFixed(5), stochVal, macd, mm200, source);
+        dispatchVisualSignal(pair, signalType, tf, velaType, candleTime, price.toFixed(5), stochVal, macd, mm200, source, score);
     });
 }
 
@@ -1626,7 +1739,7 @@ function evaluateSignalTrigger(pair, type, price, stochVal, macd, mm200, source)
     });
 }
 
-function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source) {
+function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source, score) {
     const isConfirmed = STATE.settings.confirmMode === 'none';
     STATE.rowCounter++;
     const rowId = `row-${STATE.rowCounter}`;
@@ -1676,6 +1789,10 @@ function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stoch
 
     const srcBadge = `<span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE':'SIM'}</span>`;
     const displayVela = velaType === 'Atual' ? 'Atual' : candleTime;
+    // Badge de score — cor indica qualidade: ≥8 verde, 6-7 amarelo, <6 cinza
+    const scoreVal = score ?? 0;
+    const scoreColor = scoreVal >= 8 ? 'var(--green)' : scoreVal >= 6 ? 'var(--yellow)' : 'var(--text-dim)';
+    const scoreBadge = `<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${scoreColor}">▲${scoreVal}</span>`;
 
     const row = `<tr id="${rowId}">
         <td style="font-family:var(--font-mono); color:var(--text-mid)">${new Date().toLocaleTimeString()}</td>
@@ -1689,7 +1806,7 @@ function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stoch
         <td>${macdCell}</td>
         <td>${mm200Cell}</td>
         <td class="status-cell">${statusBadge}</td>
-        <td>${srcBadge}</td>
+        <td>${srcBadge} ${scoreBadge}</td>
         <td class="result-cell"><span class="badge-open">—</span></td>
         <td class="result-price-cell" style="font-family:var(--font-mono); color:var(--text-dim)">—</td>
     </tr>`;
@@ -2268,7 +2385,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v9.9</span>
+                <span>OP245-C v10.2</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -2302,7 +2419,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v9.9 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v10.2 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -2355,7 +2472,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v9.9 Engine_`;
+_OP245-C v10.2 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -2384,7 +2501,7 @@ ${direcao}
 📐 *Variação:* ${sinalChar}${variacao}%
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v9.9 Engine_`;
+_OP245-C v10.2 Engine_`;
 
     try {
         const encoded = encodeURIComponent(msg);
@@ -2554,7 +2671,7 @@ function checkMultiTFConfluence(pair, direction, tf) {
     const cls  = closes(hist);
     const macd = calculateMACD(cls, 21, 34, 9);
 
-    // Usa apenas MACD para definir tendência macro (MM200 removido em v9.9)
+    // Usa apenas MACD para definir tendência macro (MM200 removido em v10.2)
     let trendDir = null;
     if (macd) {
         if (macd.trend === 'bullish') trendDir = 'COMPRA';
@@ -2744,6 +2861,8 @@ function updateCountdowns() {
 }
 
 // ── PAINEL DE PERFORMANCE ─────────────────────────────────
+let perfFilterTF = 'ALL'; // 'ALL' | 'M1' | 'M5' | 'M10'
+
 function renderPerformancePanel() {
     const container = document.getElementById('perf-content');
     if (!container) return;
@@ -2751,63 +2870,139 @@ function renderPerformancePanel() {
     const data = STATE.backtestData;
     const keys = Object.keys(data);
 
+    // Filtros de TF
+    const tfBtns = ['ALL','M1','M5','M10'].map(tf => {
+        const active = tf === perfFilterTF;
+        return `<button onclick="perfFilterTF='${tf}';renderPerformancePanel()"
+            style="padding:4px 10px;font-size:11px;font-family:var(--font-mono);border-radius:3px;cursor:pointer;
+            background:${active?'var(--blue)':'var(--bg-card)'};
+            border:1px solid ${active?'var(--blue)':'var(--border2)'};
+            color:${active?'#fff':'var(--text-mid)'};">${tf}</button>`;
+    }).join('');
+
     if (keys.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-dim); font-size:13px;">
+        container.innerHTML = `
+            <div style="display:flex;gap:6px;margin-bottom:12px;">${tfBtns}</div>
+            <div style="text-align:center;padding:40px;color:var(--text-dim);font-size:13px;">
             Nenhum resultado registrado ainda.<br>Os dados aparecem conforme as operações são apuradas.</div>`;
         return;
     }
 
+    // Filtra keys pelo TF selecionado
+    const filteredKeys = perfFilterTF === 'ALL'
+        ? keys
+        : keys.filter(k => k.endsWith(`_${perfFilterTF}`));
+
     // Agrupa por par
     const byPair = {};
-    keys.forEach(key => {
-        const [pair, tf] = key.split('_');
+    filteredKeys.forEach(key => {
+        const parts = key.split('_');
+        const tf    = parts[parts.length - 1];
+        const pair  = parts.slice(0, -1).join('_');
         if (!byPair[pair]) byPair[pair] = {};
-        byPair[pair][tf]  = data[key];
+        byPair[pair][tf] = data[key];
     });
 
-    let html = '';
+    // ── Bloco de confluência M1/M5/M10 ──
+    const tfsOrder = ['M1','M5','M10'];
+    const allPairs = [...new Set(keys.map(k => {
+        const p = k.split('_'); return p.slice(0,-1).join('_');
+    }))].sort();
 
-    // Taxa por Par/TF
-    html += `<div style="margin-bottom:16px;">
-        <div style="font-size:11px; color:var(--text-dim); font-family:var(--font-mono); margin-bottom:8px; letter-spacing:1px;">TAXA DE ACERTO POR PAR / TF</div>`;
+    let confluenceHtml = '';
+    if (perfFilterTF === 'ALL') {
+        confluenceHtml = `<div style="margin-bottom:16px;">
+            <div style="font-size:11px;color:var(--text-dim);font-family:var(--font-mono);margin-bottom:8px;letter-spacing:1px;">CONFLUÊNCIA TF — M1 apoiado em M5 · M5 apoiado em M10</div>
+            <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:11px;">
+            <thead><tr>
+                <th style="text-align:left;padding:4px 6px;color:var(--text-dim);border-bottom:1px solid var(--border2);">Par</th>
+                <th style="text-align:center;padding:4px 6px;color:var(--text-dim);border-bottom:1px solid var(--border2);">M1</th>
+                <th style="text-align:center;padding:4px 6px;color:var(--text-dim);border-bottom:1px solid var(--border2);">M5</th>
+                <th style="text-align:center;padding:4px 6px;color:var(--text-dim);border-bottom:1px solid var(--border2);">M10</th>
+                <th style="text-align:center;padding:4px 6px;color:var(--text-dim);border-bottom:1px solid var(--border2);">Apoio</th>
+            </tr></thead><tbody>`;
+
+        allPairs.forEach(pair => {
+            const cells = tfsOrder.map(tf => {
+                const d = data[`${pair}_${tf}`];
+                if (!d || (d.wins + d.losses) === 0) return { html: '<td style="text-align:center;padding:4px 6px;color:var(--text-dim);">—</td>', rate: null };
+                const total = d.wins + d.losses;
+                const rate  = d.wins / total * 100;
+                const color = rate >= 60 ? 'var(--green)' : rate >= 50 ? 'var(--yellow)' : 'var(--red)';
+                return {
+                    html: `<td style="text-align:center;padding:4px 6px;font-weight:700;color:${color};">${rate.toFixed(0)}%<span style="color:var(--text-dim);font-weight:400;font-size:10px;"> ${d.wins}W/${d.losses}L</span></td>`,
+                    rate
+                };
+            });
+            // Apoio: M1 apoiado em M5, M5 apoiado em M10
+            const rM1  = cells[0].rate, rM5 = cells[1].rate, rM10 = cells[2].rate;
+            let apoio = '—';
+            if (rM5 !== null && rM10 !== null) {
+                const m5ok  = rM5  >= 50;
+                const m10ok = rM10 >= 50;
+                apoio = (m5ok && m10ok) ? '<span style="color:var(--green)">✓ OK</span>'
+                      : (!m5ok && !m10ok) ? '<span style="color:var(--red)">✗ Fraco</span>'
+                      : '<span style="color:var(--yellow)">⚠ Parcial</span>';
+            }
+
+            confluenceHtml += `<tr style="border-bottom:1px solid var(--border);">
+                <td style="padding:5px 6px;color:var(--text-main);font-weight:700;">${pair}</td>
+                ${cells.map(c => c.html).join('')}
+                <td style="text-align:center;padding:4px 6px;">${apoio}</td>
+            </tr>`;
+        });
+        confluenceHtml += '</tbody></table></div></div>';
+    }
+
+    // ── Taxa por Par/TF (barras) ──
+    let barsHtml = `<div style="margin-bottom:16px;">
+        <div style="font-size:11px;color:var(--text-dim);font-family:var(--font-mono);margin-bottom:8px;letter-spacing:1px;">TAXA POR PAR${perfFilterTF !== 'ALL' ? ' — ' + perfFilterTF : ''}</div>`;
+
     Object.keys(byPair).sort().forEach(pair => {
-        Object.keys(byPair[pair]).forEach(tf => {
-            const d     = byPair[pair][tf];
+        const tfs = perfFilterTF === 'ALL' ? Object.keys(byPair[pair]) : [perfFilterTF];
+        tfs.forEach(tf => {
+            const d = byPair[pair][tf];
+            if (!d) return;
             const total = d.wins + d.losses;
             if (total === 0) return;
             const rate  = d.wins / total * 100;
             const color = rate >= 65 ? 'var(--green)' : rate >= 50 ? 'var(--yellow)' : 'var(--red)';
-            html += `<div style="margin-bottom:8px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
-                    <span style="font-size:12px; color:var(--text-main); font-family:var(--font-mono);">${pair} <span style="color:var(--blue)">${tf}</span></span>
-                    <span style="font-size:12px; font-weight:700; color:${color}; font-family:var(--font-mono);">${rate.toFixed(0)}% <span style="color:var(--text-dim); font-weight:400;">(${d.wins}W/${d.losses}L)</span></span>
+            barsHtml += `<div style="margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                    <span style="font-size:12px;color:var(--text-main);font-family:var(--font-mono);">${pair} <span style="color:var(--blue)">${tf}</span></span>
+                    <span style="font-size:12px;font-weight:700;color:${color};font-family:var(--font-mono);">${rate.toFixed(0)}% <span style="color:var(--text-dim);font-weight:400;">(${d.wins}W/${d.losses}L)</span></span>
                 </div>
-                <div style="height:4px; background:var(--border2); border-radius:2px;">
-                    <div style="height:4px; width:${Math.min(rate,100).toFixed(0)}%; background:${color}; border-radius:2px;"></div>
+                <div style="height:4px;background:var(--border2);border-radius:2px;">
+                    <div style="height:4px;width:${Math.min(rate,100).toFixed(0)}%;background:${color};border-radius:2px;"></div>
                 </div>
             </div>`;
         });
     });
-    html += '</div>';
+    barsHtml += '</div>';
 
-    // Resumo geral
-    const totalW = keys.reduce((a, k) => a + data[k].wins,   0);
-    const totalL = keys.reduce((a, k) => a + data[k].losses, 0);
+    // ── Resumo geral ──
+    const totalW = filteredKeys.reduce((a, k) => a + data[k].wins,   0);
+    const totalL = filteredKeys.reduce((a, k) => a + data[k].losses, 0);
     const total  = totalW + totalL;
-    const gRate  = total > 0 ? (totalW / total * 100) : null;
+    const gRate  = total > 0 ? totalW / total * 100 : null;
     const gColor = gRate === null ? 'var(--text-dim)' : gRate >= 65 ? 'var(--green)' : gRate >= 50 ? 'var(--yellow)' : 'var(--red)';
 
-    html += `<div style="padding:12px; background:var(--bg-card); border-radius:4px; border:1px solid var(--border2); text-align:center;">
-        <div style="font-size:11px; color:var(--text-dim); margin-bottom:4px; font-family:var(--font-mono);">TAXA GERAL DA SESSÃO</div>
-        <div style="font-size:32px; font-weight:700; color:${gColor}; font-family:var(--font-mono);">${gRate !== null ? gRate.toFixed(1)+'%' : '—'}</div>
-        <div style="font-size:12px; color:var(--text-dim); margin-top:4px;">${totalW}W &nbsp;/&nbsp; ${totalL}L &nbsp;/&nbsp; ${total} total</div>
+    const summaryHtml = `<div style="padding:12px;background:var(--bg-card);border-radius:4px;border:1px solid var(--border2);text-align:center;">
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;font-family:var(--font-mono);">TAXA GERAL${perfFilterTF !== 'ALL' ? ' — '+perfFilterTF : ''}</div>
+        <div style="font-size:32px;font-weight:700;color:${gColor};font-family:var(--font-mono);">${gRate !== null ? gRate.toFixed(1)+'%' : '—'}</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">${totalW}W &nbsp;/&nbsp; ${totalL}L &nbsp;/&nbsp; ${total} total</div>
         <button onclick="if(confirm('Apagar histórico?')){STATE.backtestData={};try{localStorage.removeItem('op245c_backtest')}catch(e){}renderPerformancePanel();updateBacktestStatus();}"
-            style="margin-top:10px; background:transparent; border:1px solid var(--border2); color:var(--text-dim); padding:4px 12px; border-radius:3px; font-size:11px; cursor:pointer;">
+            style="margin-top:10px;background:transparent;border:1px solid var(--border2);color:var(--text-dim);padding:4px 12px;border-radius:3px;font-size:11px;cursor:pointer;">
             Resetar histórico
         </button>
     </div>`;
 
-    container.innerHTML = html;
+    container.innerHTML = `
+        <div style="display:flex;gap:6px;margin-bottom:14px;">${tfBtns}</div>
+        ${confluenceHtml}
+        ${barsHtml}
+        ${summaryHtml}`;
 }
 
 function switchTab(tab) {
@@ -2969,7 +3164,7 @@ function init() {
     // Simulação só é ativada após 10 falhas no WS (ver WS_BACKOFF.maxTries).
     connectRealData();
 
-    console.log('[OP245-C v9.9] Engine iniciada.');
+    console.log('[OP245-C v10.2] Engine iniciada.');
 }
 
 init();
