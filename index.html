@@ -1655,8 +1655,9 @@ function processTick(pair, price, source) {
         if (pair === 'EUR/USD')        { score -= 1; scoreLog.push('EURUSD-1'); }
 
         // EUR/USD: exige confluência do TF maior disponível (M10 ou M5)
-        // Se nenhum TF maior registrou direção ainda, bloqueia — evita ruído no início
-        if (pair === 'EUR/USD' && !refDir) return;
+        // Só bloqueia se há 2+ TFs selecionados e o maior ainda não registrou direção
+        // Com apenas 1 TF selecionado não há referência possível — deixa passar pelo score
+        if (pair === 'EUR/USD' && tfsActive.length > 1 && !refDir) return;
 
         const scoreThreshold = s.scoreThreshold ?? 6;
         if (score < scoreThreshold) {
