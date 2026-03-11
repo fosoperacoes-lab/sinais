@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v10.7 | Engine</title>
+    <title>OP245-C Sinais v10.8 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -472,7 +472,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v10.7 ENGINE</span>
+        <span class="nav-version">SINAIS v10.8 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -584,7 +584,7 @@
             </div>
             <input type="range" class="ind-slider" id="cfg-score-thr" min="0" max="12" value="4"
                 oninput="STATE.settings.scoreThreshold=+this.value; document.getElementById('val-score-thr').textContent=this.value==='0'?'OFF':this.value;">
-            <div style="font-size:10px; color:var(--text-dim); margin-top:3px;">0 = desativado · 6 = padrão · 9 = muito seletivo</div>
+            <div style="font-size:10px; color:var(--text-dim); margin-top:3px;">0 = desativado · 4-6 = padrão · 7+ = exige Multi-TF ou crossover</div>
         </div>
         <div id="otc-status-bar" style="display:none; margin-top:10px; padding:8px 10px; border-radius:4px; background:rgba(255,204,0,0.07); border:1px solid rgba(255,204,0,0.3);">
             <div style="font-size:11px; color:var(--yellow); font-weight:700; margin-bottom:4px;">⚠ MERCADO OTC ATIVO</div>
@@ -871,7 +871,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v10.7 — ENGINE CORE
+//  OP245-C v10.8 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -902,16 +902,16 @@ const STATE = {
         useMacd: true, useStoch: true, useMM200: true, ignoreOTC: true,
         useLiquidity: false, useNews: false, useMultiTF: false,
         useVolatility: false, useBacktest: false, atrMultiplier: 1.5,
-        // v10.7 — threshold histograma MACD por categoria (CSV: MACD nao discrimina sozinho)
+        // v10.8 — threshold histograma MACD por categoria (CSV: MACD nao discrimina sozinho)
         macdHistThreshold: { forex: 0.0003, commodity: 0.08, crypto: 8.0 },
-        // v10.7 — bloqueia M1 forex/commodity (EUR/USD M1=32%, XAUUSD M1=43% no CSV)
+        // v10.8 — bloqueia M1 forex/commodity (EUR/USD M1=32%, XAUUSD M1=43% no CSV)
         blockM1NonCrypto: true,
-        // v10.7 — bloqueia 01h BRT (31% WIN no CSV — mercado asiatico lateral)
+        // v10.8 — bloqueia 01h BRT (31% WIN no CSV — mercado asiatico lateral)
         blockAsiaDeadZone: true,
         blockVelaAtualM5M10: false,  // bloqueia 'Vela Atual' em M5 e M10
-        // v10.7 — Stoch 0-5 foi 38.7% WIN; eleva zona minima para 5
+        // v10.8 — Stoch 0-5 foi 38.7% WIN; eleva zona minima para 5
         stochMinZone: 5,
-        // v10.7 — Score mínimo para sinal disparar (0 = desativado)
+        // v10.8 — Score mínimo para sinal disparar (0 = desativado)
         scoreThreshold: 6,
     },
 
@@ -1518,7 +1518,7 @@ function processTick(pair, price, source) {
         // ── FILTRO MM200 (removido — ineficaz em M5) ──────────
         // MM200 calculado sobre velas M5 representa apenas ~16h — não é tendência macro.
         // Zona NEAR aparecia em 40% dos sinais, inutilizando o filtro.
-        // Removido em v10.7. MACD cobre a direção de momentum.
+        // Removido em v10.8. MACD cobre a direção de momentum.
 
         // ── FILTRO DE MOMENTUM: Stoch extremo + MACD virando ──
         // Insight do analista: o motor opera reversões cedo demais.
@@ -1540,7 +1540,7 @@ function processTick(pair, price, source) {
             // Se o histograma existe e está indo contra o sinal com força, bloqueia
             // (histograma muito negativo para COMPRA = ainda caindo com força)
             if (macd.histogram !== undefined) {
-                // v10.7 — threshold por categoria (forex/commodity/crypto têm escalas diferentes)
+                // v10.8 — threshold por categoria (forex/commodity/crypto têm escalas diferentes)
                 const thr = s.macdHistThreshold || {};
                 const histThreshold = CRYPTO_PAIRS.has(pair)    ? (thr.crypto    ?? 8.0)
                                     : COMMODITY_PAIRS.has(pair)  ? (thr.commodity ?? 0.08)
@@ -1577,7 +1577,7 @@ function processTick(pair, price, source) {
 
         const stochVal = stoch ? stoch.k : calculateRSI(cls, p.rsiPeriod);
 
-        // ── FILTRO ANTI-SATURAÇÃO + ZONA MÍNIMA (v10.7) ──────
+        // ── FILTRO ANTI-SATURAÇÃO + ZONA MÍNIMA (v10.8) ──────
         // Stoch = 0|100: saturação — não confiável
         // Stoch 0-5 no CSV = 38.7% WIN (pior que aleatório) → eleva mínimo para 5
         if (stochVal === 0 || stochVal === 100) return;
@@ -1585,7 +1585,7 @@ function processTick(pair, price, source) {
         if (signalType === 'COMPRA' && stochVal < minZ) return;
         if (signalType === 'VENDA'  && stochVal > (100 - minZ)) return;
 
-        // ── FILTRO M1 NÃO-CRIPTO (v10.7, revisado v10.7) ──────
+        // ── FILTRO M1 NÃO-CRIPTO (v10.8, revisado v10.8) ──────
         // CSV noturno: EUR/USD M1=32% → ruído à noite
         // Londres 08h-17h BRT: EUR/USD M1 liberado — dinâmica diferente
         // Outros forex/commodity: sempre bloqueados em M1
@@ -1600,7 +1600,7 @@ function processTick(pair, price, source) {
             }
         }
 
-        // ── FILTRO ZONA MORTA ASIÁTICA (v10.7) ─────────────
+        // ── FILTRO ZONA MORTA ASIÁTICA (v10.8) ─────────────
         // CSV: 01h BRT = 31% WIN — mercado asiático lateral destrói o motor
         // Bloqueia 01:00-01:59 BRT
         if (s.blockAsiaDeadZone) {
@@ -1608,7 +1608,7 @@ function processTick(pair, price, source) {
             if (brt.getHours() === 1) return;
         }
 
-        // ── SCORE ENGINE (v10.7) ─────────────────────────────
+        // ── SCORE ENGINE (v10.8) ─────────────────────────────
         // Cada condição confirmada adiciona pontos.
         // Sinal só dispara se score >= threshold (padrão 6).
         // Calibrado nos dados reais: padrões ≥65% WIN têm pelo menos 2 condições fortes.
@@ -1623,14 +1623,14 @@ function processTick(pair, price, source) {
         //   Volatilidade adequada (ATR ok)     +1   não bloqueado pelo filtro
         //   BTC/USD                            +1   melhor ativo (55.5% geral)
         //   Bollinger Bands toque              +2   confirmação universal — abre majors/crosses
-        //   EUR/USD PENALIDADE                 --   removida v10.7 (neutro)
+        //   EUR/USD PENALIDADE                 --   removida v10.8 (neutro)
         //   Threshold: Crypto=baseThreshold, outros=baseThreshold-1 (mín 2)
 
         let score = 0;
         const scoreLog = [];
 
         // Stoch extremo base
-        // EUR/USD: exige zona mais rigorosa ≤5/≥95 — Stoch 6.9 gerou LOSS (v10.7 dados reais)
+        // EUR/USD: exige zona mais rigorosa ≤5/≥95 — Stoch 6.9 gerou LOSS (v10.8 dados reais)
         // Outros pares: zona padrão ≤10/≥90
         const stochMinZone = (pair === 'EUR/USD') ? 5 : 10;
         const stochMaxZone = (pair === 'EUR/USD') ? 95 : 90;
@@ -1667,7 +1667,7 @@ function processTick(pair, price, source) {
 
         if (refDir && refDir === signalType) { score += 2; scoreLog.push(`${trendTFRef}_alin+2`); }
 
-        // Bollinger Bands — confirma que extremo de Stoch = extremo de preço (v10.7)
+        // Bollinger Bands — confirma que extremo de Stoch = extremo de preço (v10.8)
         // +2 para qualquer par — é o discriminador universal que abre espaço para majors/crosses
         const hist4bb = STATE.marketData[pair];
         if (hist4bb && hist4bb.length >= 20) {
@@ -1684,16 +1684,20 @@ function processTick(pair, price, source) {
 
         // Bônus/penalidade por par
         if (CRYPTO_PAIRS.has(pair))   { score += 1; scoreLog.push('Crypto+1'); }
-        // EUR/USD: penalidade removida (v10.7) — agora neutro como XAUUSD
+        // EUR/USD: penalidade removida (v10.8) — agora neutro como XAUUSD
         // Era: score -= 1. Revertível se taxa cair.
         // if (pair === 'EUR/USD') { score -= 1; scoreLog.push('EURUSD-1'); }
 
-        // EUR/USD: exige confluência do TF maior disponível (M10 ou M5)
-        // Só bloqueia se há 2+ TFs selecionados e o maior ainda não registrou direção
-        // Com apenas 1 TF selecionado não há referência possível — deixa passar pelo score
-        if (pair === 'EUR/USD' && tfsActive.length > 1 && !refDir) return;
+        // Multi-TF: se ativo e TF é M1 e não há direção do TF maior → bloqueia
+        // Evita M1 "Divergente" passar sem confluência (observado na v10.8)
+        // EUR/USD: sempre exige, qualquer TF
+        // Outros pares: só bloqueia M1 sem referência quando useMultiTF ativo
+        if (tfsActive.length > 1 && !refDir) {
+            if (pair === 'EUR/USD') return; // EUR/USD sempre exige TF maior
+            if (s.useMultiTF && tf === 'M1') return; // M1 divergente bloqueado
+        }
 
-        // Threshold por categoria (v10.7, corrigido v10.7)
+        // Threshold por categoria (v10.8, corrigido v10.8)
         // -1 para não-cripto APENAS no range padrão (≤5) — abre majors/crosses/commodity
         // Acima de 5: usuário ajustou manualmente — threshold igual para TODOS os pares
         // Bug: EUR/USD com slider=10 passava com score 9 (10-1=9). Corrigido.
@@ -1706,7 +1710,7 @@ function processTick(pair, price, source) {
         }
         console.log(`[SCORE] ${pair} ${tf} ${signalType} APROVADO: ${score}/${scoreThreshold} [${scoreLog.join(', ')}]`);
 
-        // ── LOCK v10.7: TTL = 2× duração da vela ──────────
+        // ── LOCK v10.8: TTL = 2× duração da vela ──────────
         // CSV mostrou 86 sinais duplicados (< 60s no mesmo par+TF)
         // Causa: TTL expirava exatamente na virada de vela e o próximo tick re-disparava
         // Solução: TTL = 2 × tfMs garante que não repete na vela atual nem na próxima
@@ -1739,7 +1743,19 @@ function processTick(pair, price, source) {
         let velaType   = velas[Math.floor(Math.random() * velas.length)];
         const candleTime = getCandleTime(tf, velaType);
 
-        // ── FILTRO VELA ATUAL M5/M10 (v10.7) ──────────────────
+        // ── COOLDOWN GLOBAL POR PAR (v10.8) ─────────────────
+        // Se um TF maior do mesmo par disparou nos últimos 30s, M1 aguarda
+        // Evita 3 sinais simultâneos no mesmo ativo (observado na v10.8)
+        if (tf === 'M1') {
+            const recentSibling = ['M5','M10'].some(otherTF => {
+                const sibKey = `${pair}_${otherTF}`;
+                const sib = STATE.lockedSignals.get(sibKey);
+                return sib && (now - sib.ts) < 30000;
+            });
+            if (recentSibling) return;
+        }
+
+        // ── FILTRO VELA ATUAL M5/M10 (v10.8) ──────────────────
         // LOSSes observados em tempo real: ambos ocorreram em 'Vela Atual' para M5 e M10
         // Quando ativo: força 'Próxima Vela' nesses TFs — entra no início da vela seguinte
         if (STATE.settings.blockVelaAtualM5M10 && velaType === 'Atual') {
@@ -2130,7 +2146,7 @@ function getAudioCtx() {
     return audioCtx;
 }
 
-// ── AVISO ANTECIPADO M1 (v10.7) ──────────────────────────
+// ── AVISO ANTECIPADO M1 (v10.8) ──────────────────────────
 // Som e badge distintos do sinal — avisa para entrar na corretora
 function playWarningSound() {
     if (STATE.isMuted) return;
@@ -2489,7 +2505,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v10.7</span>
+                <span>OP245-C v10.8</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -2523,7 +2539,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v10.7 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v10.8 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -2576,7 +2592,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v10.7 Engine_`;
+_OP245-C v10.8 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -2605,7 +2621,7 @@ ${direcao}
 📐 *Variação:* ${sinalChar}${variacao}%
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v10.7 Engine_`;
+_OP245-C v10.8 Engine_`;
 
     try {
         const encoded = encodeURIComponent(msg);
@@ -2775,7 +2791,7 @@ function checkMultiTFConfluence(pair, direction, tf) {
     const cls  = closes(hist);
     const macd = calculateMACD(cls, 21, 34, 9);
 
-    // Usa apenas MACD para definir tendência macro (MM200 removido em v10.7)
+    // Usa apenas MACD para definir tendência macro (MM200 removido em v10.8)
     let trendDir = null;
     if (macd) {
         if (macd.trend === 'bullish') trendDir = 'COMPRA';
@@ -2844,7 +2860,7 @@ function calculateATR(hist, period = 14) {
  * Agrega ticks brutos do WebSocket em velas OHLC pelo TF solicitado
  * Mantém candle corrente aberto até virar o período
  */
-// ── BOLLINGER BANDS (v10.7) ───────────────────────────────
+// ── BOLLINGER BANDS (v10.8) ───────────────────────────────
 // Confirma que o extremo do Stoch coincide com extremo de preço
 // Retorna: { upper, lower, mid, touchUpper, touchLower }
 // touchUpper = preço atual >= banda superior (zona de VENDA)
@@ -2893,7 +2909,7 @@ function isVolatilityBlocked(pair) {
     return atrData.ratio > STATE.settings.atrMultiplier;
 }
 
-// ── FILTRO ATR XAUUSD (v10.7) ─────────────────────────────
+// ── FILTRO ATR XAUUSD (v10.8) ─────────────────────────────
 // Dado do CSV: XAUUSD em expansão (variação grande) = 31.3% WIN
 // O ouro em movimento forte vai contra a reversão — sempre bloqueado nesse regime
 // Funciona independente do toggle de Volatilidade geral
@@ -3304,7 +3320,7 @@ function init() {
     // Simulação só é ativada após 10 falhas no WS (ver WS_BACKOFF.maxTries).
     connectRealData();
 
-    console.log('[OP245-C v10.7] Engine iniciada.');
+    console.log('[OP245-C v10.8] Engine iniciada.');
 }
 
 init();
