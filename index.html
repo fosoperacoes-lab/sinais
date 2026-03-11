@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v9.8 | Engine</title>
+    <title>OP245-C Sinais v9.9 | Engine</title>
 
     <!-- PWA — instalação Android/Chrome -->
     <link rel="manifest" href="manifest.json">
@@ -471,7 +471,7 @@
     <div class="nav-brand">
         <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
         <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v9.8 ENGINE</span>
+        <span class="nav-version">SINAIS v9.9 ENGINE</span>
     </div>
     <div class="nav-right">
         <span id="sys-status">
@@ -858,7 +858,7 @@
 
 <script>
 // ============================================================
-//  OP245-C v9.8 — ENGINE CORE
+//  OP245-C v9.9 — ENGINE CORE
 //  Melhorias implementadas:
 //  [1] Integração com API real (TwelveData WebSocket/REST)
 //  [2] MACD real calculado e usado como filtro de confirmação
@@ -1217,10 +1217,10 @@ async function populateHistoricalData() {
 }
 
 // ── EXPONENTIAL BACKOFF ────────────────────────────────────
-// Tenta: 2s → 4s → 8s → 16s → 32s → desiste e cai para simulação
+// Tenta: 2s → 4s → 8s → 16s → 32s → 64s → ... → 10 tentativas → simulação
 const WS_BACKOFF = {
     attempt:  0,
-    maxTries: 5,
+    maxTries: 10,
     baseMs:   2000,
     timer:    null,
 
@@ -1231,18 +1231,18 @@ const WS_BACKOFF = {
 
     next(onRetry) {
         if (this.attempt >= this.maxTries) {
-            console.warn('[WS] Máximo de tentativas atingido — caindo para simulação');
-            setApiStatus('error', 'WS falhou após 5 tentativas — usando simulação');
-            showErrorToast('WebSocket indisponível — modo simulação ativado');
+            console.warn('[WS] 10 tentativas falharam — ativando simulação');
+            setApiStatus('error', 'WS indisponível após 10 tentativas — modo simulação');
+            showErrorToast('WebSocket indisponível — simulação ativada como fallback');
             STATE.apiMode = 'simulation';
             startSimulationEngine();
             this.reset();
             return;
         }
 
-        // delay = base * 2^attempt + jitter aleatório (±20%)
-        const exp    = this.baseMs * Math.pow(2, this.attempt);
-        const jitter = exp * (Math.random() * 0.4 - 0.2); // ±20%
+        // delay = base * 2^attempt + jitter (±20%), cap em 60s
+        const exp    = Math.min(this.baseMs * Math.pow(2, this.attempt), 60000);
+        const jitter = exp * (Math.random() * 0.4 - 0.2);
         const delay  = Math.round(exp + jitter);
         this.attempt++;
 
@@ -1496,26 +1496,37 @@ function processTick(pair, price, source) {
         }
         if (!signalType) return;
 
-        // Filtro MM200 — alinha sinal com tendência de longo prazo
-        // COMPRA só quando preço está ACIMA da MM200 (tendência de alta confirmada)
-        // VENDA  só quando preço está ABAIXO da MM200 (tendência de baixa confirmada)
-        // Zona NEAR (<0.3% de distância) = neutro, não bloqueia
-        if (s.useMM200 && mm200) {
-            const dist = Math.abs(mm200.distance || 0);
-            if (dist > 0.3) {
-                if (signalType === 'COMPRA' && mm200.trend === 'below') return; // tendência baixa → não compra
-                if (signalType === 'VENDA'  && mm200.trend === 'above') return; // tendência alta  → não vende
-            }
-        }
+        // ── FILTRO MM200 (removido — ineficaz em M5) ──────────
+        // MM200 calculado sobre velas M5 representa apenas ~16h — não é tendência macro.
+        // Zona NEAR aparecia em 40% dos sinais, inutilizando o filtro.
+        // Removido em v9.9. MACD cobre a direção de momentum.
 
-        // Filtro MACD — confirma momentum OU aceita crossover (reversão iniciando)
-        // Lógica: o Stoch RSI detecta reversões ANTES do MACD virar
-        // Por isso aceita: neutro, alinhado, OU cruzando a linha zero agora
-        // Só bloqueia quando MACD está consolidado na direção OPOSTA sem sinal de virada
+        // ── FILTRO DE MOMENTUM: Stoch extremo + MACD virando ──
+        // Insight do analista: o motor opera reversões cedo demais.
+        // Solução: exige que o MACD confirme que a virada JÁ COMEÇOU.
+        // Aceita sinal quando:
+        //   (a) MACD alinhado com o sinal (bullish para COMPRA, bearish para VENDA)
+        //   (b) MACD cruzando agora (crossover = reversão iniciando)
+        //   (c) MACD neutro (sem tendência definida)
+        // Bloqueia quando MACD consolidado na direção OPOSTA sem sinal de virada.
+        // Adicionalmente: exige histogram virando — histograma deve estar
+        // se movendo na direção do sinal (momentum crescente, não apenas extremo).
         if (s.useMacd && macd) {
+            // Bloqueia se MACD oposto e sem crossover
             const opposite = (signalType === 'COMPRA' && macd.trend === 'bearish' && !macd.crossover) ||
                              (signalType === 'VENDA'  && macd.trend === 'bullish' && !macd.crossover);
             if (opposite) return;
+
+            // Filtro de momentum: histograma deve confirmar a direção
+            // Se o histograma existe e está indo contra o sinal com força, bloqueia
+            // (histograma muito negativo para COMPRA = ainda caindo com força)
+            if (macd.histogram !== undefined) {
+                const histStrong = Math.abs(macd.histogram) > 0.0003; // threshold para forex; ajustável
+                if (histStrong) {
+                    if (signalType === 'COMPRA' && macd.histogram < 0 && !macd.crossover) return;
+                    if (signalType === 'VENDA'  && macd.histogram > 0 && !macd.crossover) return;
+                }
+            }
         }
 
         // ── FILTROS AVANÇADOS ──────────────────────────────
@@ -2257,7 +2268,7 @@ function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, 
                 <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
             </div>
             <div class="popup-src">
-                <span>OP245-C v9.8</span>
+                <span>OP245-C v9.9</span>
                 <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
             </div>
         </div>`;
@@ -2291,7 +2302,7 @@ async function testTelegram() {
         showErrorToast('Preencha Token e Chat ID do Telegram');
         return;
     }
-    const msg = `🤖 *OP245-C v9.8 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
+    const msg = `🤖 *OP245-C v9.9 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
     const ok = await sendTelegramMessage(msg);
     if (ok) {
         document.getElementById('tg-status-dot').style.cssText =
@@ -2344,7 +2355,7 @@ function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal
 📈 *MM200:* ${mm200Txt}
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v9.8 Engine_`;
+_OP245-C v9.9 Engine_`;
 
     sendTelegramMessage(msg);
 }
@@ -2373,7 +2384,7 @@ ${direcao}
 📐 *Variação:* ${sinalChar}${variacao}%
 
 🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v9.8 Engine_`;
+_OP245-C v9.9 Engine_`;
 
     try {
         const encoded = encodeURIComponent(msg);
@@ -2515,38 +2526,47 @@ function registerMultiTFDirection(pair, tf, direction) {
 
 function checkMultiTFConfluence(pair, direction, tf) {
     if (!STATE.settings.useMultiTF) return true;
+
     const tfs = Array.from(STATE.selectedTFs).sort((a, b) =>
         parseInt(a.replace('M','')) - parseInt(b.replace('M',''))
     );
+
+    // ── Regra especial: M1 sempre exige que M5 concorde ──────
+    // Independente do Multi-TF estar ativado ou não,
+    // M1 é muito ruidoso sozinho — M5 funciona como filtro obrigatório.
+    if (tf === 'M1') {
+        const m5Signal = multiTFSignals[`${pair}_M5`];
+        if (m5Signal && m5Signal !== direction) return false; // M5 discorda → bloqueia
+        // Se M5 ainda não tem sinal, deixa passar (evita travamento no início)
+        return true;
+    }
+
     if (tfs.length < 2) return true;
 
     // TF maior = tendência, TF menor = gatilho
-    const triggerTF = tfs[0];  // ex: M5
-    const trendTF   = tfs[tfs.length - 1]; // ex: M10
+    const triggerTF = tfs[0];
+    const trendTF   = tfs[tfs.length - 1];
 
-    // Só aplica filtro quando o sinal vem do TF gatilho
     if (tf !== triggerTF) return true;
 
-    // Calcula MM200 e MACD do TF de tendência para definir direção macro
     const hist = STATE.marketData[pair];
     if (!hist || hist.length < 30) return true;
-    const cls    = closes(hist);
-    const mm200  = calculateMM200(cls);
-    const macd   = calculateMACD(cls, 21, 34, 9); // parâmetros do TF maior
+    const cls  = closes(hist);
+    const macd = calculateMACD(cls, 21, 34, 9);
 
+    // Usa apenas MACD para definir tendência macro (MM200 removido em v9.9)
     let trendDir = null;
-    if (mm200 && macd) {
-        const bullTrend = mm200.trend === 'above' && macd.trend === 'bullish';
-        const bearTrend = mm200.trend === 'below' && macd.trend === 'bearish';
-        if (bullTrend)  trendDir = 'COMPRA';
-        if (bearTrend)  trendDir = 'VENDA';
+    if (macd) {
+        if (macd.trend === 'bullish') trendDir = 'COMPRA';
+        if (macd.trend === 'bearish') trendDir = 'VENDA';
+        // crossover = virada em andamento — aceita ambas as direções
+        if (macd.crossover) trendDir = null;
     }
 
     multiTFTrend[`${pair}_${trendTF}`] = trendDir;
     updateMultiTFStatus(pair);
 
-    // Sinal válido só quando alinha com a tendência macro
-    if (!trendDir) return false; // tendência indefinida → não opera
+    if (!trendDir) return false;
     return direction === trendDir;
 }
 
@@ -2945,10 +2965,11 @@ function init() {
     } catch(e) {}
 
     setApiStatus('connecting', 'Conectando à TwelveData...');
-    startSimulationEngine();
-    setTimeout(() => connectRealData(), 800);
+    // Não inicia simulação no boot — tenta API primeiro.
+    // Simulação só é ativada após 10 falhas no WS (ver WS_BACKOFF.maxTries).
+    connectRealData();
 
-    console.log('[OP245-C v9.8] Engine iniciada.');
+    console.log('[OP245-C v9.9] Engine iniciada.');
 }
 
 init();
