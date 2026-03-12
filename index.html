@@ -1207,16 +1207,43 @@ async function connectRealData() {
     }
 }
 
-async function populateHistoricalData() {
-    // 500 velas de 5min = ~41h de histórico — garante MM200 real com folga
-    const selected = Array.from(STATE.selectedAssets).slice(0, 3);
+async function populateHistoricalData(assets = Array.from(STATE.selectedAssets), options = {}) {
+    const {
+        interval = '5min',
+        outputsize = 500,
+        pauseMs = 350,
+        reconnectWS = false,
+    } = options;
+
+    const selected = [...new Set((assets || []).filter(a => STATE.assets.includes(a)))];
+    if (selected.length === 0) return { loaded: 0, failed: 0, skipped: 0 };
+
+    let loaded = 0, failed = 0, skipped = 0;
+
     for (const asset of selected) {
         try {
+            const hist = STATE.marketData[asset] || [];
+            if (hist.length >= 180 && interval === '5min') {
+                skipped++;
+                continue;
+            }
+
             const symbol = SYMBOL_MAP[asset] || asset;
-            const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=5min&outputsize=500&apikey=${STATE.apiKey}`;
+            const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&outputsize=${outputsize}&apikey=${STATE.apiKey}`;
             const res  = await fetch(url);
             const data = await res.json();
-            if (data.values && Array.isArray(data.values)) {
+
+            if (data.code === 429 || (data.message && data.message.toLowerCase().includes('limit'))) {
+                notifyApiLimit();
+                failed++;
+                break;
+            }
+
+            if (data.status === 'error' || data.code) {
+                throw new Error(data.message || 'Erro ao carregar histórico');
+            }
+
+            if (data.values && Array.isArray(data.values) && data.values.length) {
                 const candles = data.values.reverse().map(c => ({
                     o: parseFloat(c.open),
                     h: parseFloat(c.high),
@@ -1225,14 +1252,47 @@ async function populateHistoricalData() {
                     t: new Date(c.datetime).getTime(),
                 }));
                 STATE.marketData[asset] = candles;
-                console.log(`[API] OHLC carregado para ${asset}: ${candles.length} velas de 5min (~${Math.round(candles.length*5/60)}h)`);
+                loaded++;
+                console.log(`[API] OHLC carregado para ${asset}: ${candles.length} velas de ${interval}`);
+            } else {
+                failed++;
+                console.warn(`[API] Histórico vazio para ${asset}`);
             }
         } catch (e) {
+            failed++;
             console.warn(`[API] Falha ao buscar histórico de ${asset}:`, e.message);
         }
-        // Pausa 300ms entre requests para não esgotar rate limit
-        await new Promise(r => setTimeout(r, 300));
+
+        if (pauseMs > 0) {
+            await new Promise(r => setTimeout(r, pauseMs));
+        }
     }
+
+    if (reconnectWS && STATE.apiMode === 'live') {
+        connectWebSocket();
+    }
+
+    return { loaded, failed, skipped };
+}
+
+let assetRefreshTimer = null;
+
+function scheduleAssetRefresh() {
+    if (assetRefreshTimer) clearTimeout(assetRefreshTimer);
+
+    assetRefreshTimer = setTimeout(async () => {
+        const selected = Array.from(STATE.selectedAssets);
+
+        if (STATE.apiMode === 'live' && STATE.apiKey) {
+            setApiStatus('connecting', `Atualizando ativos (${selected.length})...`);
+            await populateHistoricalData(selected, { reconnectWS: true });
+            setApiStatus('live', `API TwelveData conectada — ${selected.length} ativos`);
+        } else {
+            setApiStatus('simulation', `Simulação — ${selected.length} ativos selecionados`);
+        }
+
+        updateMarketStatusPanel();
+    }, 500);
 }
 
 // ── EXPONENTIAL BACKOFF ────────────────────────────────────
@@ -2450,6 +2510,7 @@ function toggleAsset(a) {
         ? (STATE.selectedAssets.delete(a), el?.classList.remove('active'))
         : (STATE.selectedAssets.add(a),    el?.classList.add('active'));
     updateGroupCount(a);
+    scheduleAssetRefresh();
 }
 
 function bulkGroup(groupId, status) {
@@ -2461,6 +2522,7 @@ function bulkGroup(groupId, status) {
         el?.classList.toggle('active', status);
     });
     updateGroupCount(group.pairs[0]);
+    scheduleAssetRefresh();
 }
 
 function bulkAssets(status) {
@@ -2471,6 +2533,7 @@ function bulkAssets(status) {
     });
     // Atualiza contadores de todos os grupos
     ASSET_GROUPS.forEach(g => updateGroupCount(g.pairs[0]));
+    scheduleAssetRefresh();
 }
 
 function getCandleTime(tf, tipoVela) {
