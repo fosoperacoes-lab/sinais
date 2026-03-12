@@ -7,7 +7,7 @@
 //  [4] Limpeza de caches antigos no activate
 // ============================================================
 
-const CACHE_VERSION = 'op245-c-v10.10';
+const CACHE_VERSION = 'op245-c-v10.11';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const ALL_CACHES    = [STATIC_CACHE, DYNAMIC_CACHE];
