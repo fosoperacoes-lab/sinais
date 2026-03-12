@@ -1,105 +1,90 @@
-// ============================================================
-//  OP245-G Service Worker v6.0
-//  Melhorias:
-//  [1] Versionamento explícito — atualiza cache automaticamente
-//  [2] Estratégia Network-First para HTML (sempre busca nova versão)
-//  [3] Cache-First para assets estáticos (fonts, ícones)
-//  [4] Limpeza de caches antigos no activate
-// ============================================================
+// =====================================================
+// OP245-C v2.0 - BULLEX 20 PARES OTIMIZADO
+// Correção: BATCH API + Filtros Agressivos
+// =====================================================
 
-const CACHE_VERSION = 'op245-c-v10.10';
-const STATIC_CACHE  = `${CACHE_VERSION}-static`;
-const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
-const ALL_CACHES    = [STATIC_CACHE, DYNAMIC_CACHE];
-
-// Assets que vivem no cache estático (raramente mudam)
-const STATIC_ASSETS = [
-    '/manifest.json',
-    '/icon-192.png',
-    '/icon-512.png',
+const PARES_BULLEX_20 = [
+  'EURUSD','GBPUSD','USDJPY','AUDUSD','USDCAD','EURJPY','GBPJPY','AUDJPY',
+  'EURGBP','NZDUSD','USDCHF','EURCAD','GBPCAD','AUDCAD','NZDJPY','BTCUSD',
+  'ETHUSD','XAUUSD','USOIL','NAS100'
 ];
 
-// ── Instalação ──────────────────────────────────────────────
-self.addEventListener('install', event => {
-    console.log(`[SW] Instalando ${CACHE_VERSION}`);
-    event.waitUntil(
-        caches.open(STATIC_CACHE)
-            .then(cache => cache.addAll(STATIC_ASSETS.filter(url => !url.includes('icon')))) // ícones podem não existir
-            .catch(err => console.warn('[SW] Falha no cache estático:', err))
-    );
-    // Força ativação imediata (não espera fechar aba)
-    self.skipWaiting();
-});
+// Função chunk para batches de 5 pares
+function chunkArray(array, size) {
+  const chunks = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+}
 
-// ── Ativação — limpa caches antigos ────────────────────────
-self.addEventListener('activate', event => {
-    console.log(`[SW] Ativando ${CACHE_VERSION} — limpando versões antigas`);
-    event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames
-                    .filter(name => !ALL_CACHES.includes(name)) // não é da versão atual
-                    .map(name => {
-                        console.log(`[SW] Removendo cache obsoleto: ${name}`);
-                        return caches.delete(name);
-                    })
-            );
-        }).then(() => self.clients.claim()) // assume controle de todas as abas
-    );
-});
+const BATCHES = chunkArray(PARES_BULLEX_20, 5); // 4 chamadas de 5 pares
 
-// ── Fetch — estratégia por tipo de recurso ──────────────────
-self.addEventListener('fetch', event => {
-    const { request } = event;
-    const url = new URL(request.url);
-
-    // Ignora requisições de APIs externas (TwelveData, Google Fonts)
-    if (!url.origin.includes(self.location.origin)) {
-        return; // deixa o browser tratar normalmente
-    }
-
-    // index.html → Network-First (garante versão mais recente)
-    if (url.pathname === '/' || url.pathname.endsWith('index.html')) {
-        event.respondWith(networkFirst(request));
-        return;
-    }
-
-    // Assets estáticos → Cache-First
-    event.respondWith(cacheFirst(request));
-});
-
-// ── Estratégia: Network-First ───────────────────────────────
-async function networkFirst(request) {
-    try {
-        const networkResponse = await fetch(request);
-        if (networkResponse.ok) {
-            const cache = await caches.open(DYNAMIC_CACHE);
-            cache.put(request, networkResponse.clone());
-        }
-        return networkResponse;
-    } catch (err) {
-        // Offline: retorna do cache
-        const cached = await caches.match(request);
-        if (cached) return cached;
-        // Fallback mínimo
-        return new Response('<h1 style="font-family:monospace;color:#ff3355;background:#020608;padding:40px;">OP245-G — Offline. Reconecte para continuar.</h1>', {
-            headers: { 'Content-Type': 'text/html' }
+// =====================================================
+// POLLING OTIMIZADO - 4 BATCHES/30s
+// =====================================================
+function startOptimizedPolling() {
+  console.log('🚀 OP245-C v2.0: Iniciando monitoramento 20 pares Bullex');
+  
+  setInterval(() => {
+    BATCHES.forEach((batch, index) => {
+      setTimeout(() => {
+        fetchSignals(batch.join(',')).then(() => {
+          console.log(`✅ Batch ${index + 1}/${BATCHES.length} (${batch.join(',')})`);
         });
-    }
+      }, index * 8000); // 8s entre batches
+    });
+  }, 30000); // Novo ciclo a cada 30s
 }
 
-// ── Estratégia: Cache-First ─────────────────────────────────
-async function cacheFirst(request) {
-    const cached = await caches.match(request);
-    if (cached) return cached;
-    try {
-        const networkResponse = await fetch(request);
-        if (networkResponse.ok) {
-            const cache = await caches.open(STATIC_CACHE);
-            cache.put(request, networkResponse.clone());
-        }
-        return networkResponse;
-    } catch (err) {
-        return new Response('Recurso não disponível offline.', { status: 503 });
-    }
+// =====================================================
+// FILTROS BULLEX-OTIMIZADOS (12/88 ao invés 5/95)
+// =====================================================
+function generateSignal(data) {
+  const stochRSI = parseFloat(data.stoch_rsi);
+  const macdDir = data.macd_direction;
+  const price = parseFloat(data.close);
+  const mm200 = parseFloat(data.mm200);
+  
+  // FILTRO FORTE BULLEX
+  const strongSignal = (
+    (stochRSI <= 12 || stochRSI >= 88) &&  // Zonas expandidas
+    macdDir !== '≈' &&                     // MACD com direção
+    Math.abs(price - mm200) > 0.0003       // Distância MM200
+  );
+  
+  if (strongSignal) {
+    const direction = stochRSI <= 12 ? 'COMPRA' : 'VENDA';
+    return {
+      symbol: data.symbol,
+      direction,
+      stochRSI: stochRSI.toFixed(1),
+      macd: macdDir,
+      strength: stochRSI <= 8 || stochRSI >= 92 ? '★★★' : '★★'
+    };
+  }
+  return null;
 }
+
+// =====================================================
+// FETCH OTIMIZADO COM BATCH
+// =====================================================
+async function fetchSignals(symbols) {
+  try {
+    const response = await fetch(`/api/signals?symbols=${symbols}&apikey=${API_KEY}`);
+    const data = await response.json();
+    
+    data.forEach(item => {
+      const signal = generateSignal(item);
+      if (signal) {
+        addSignalToDashboard(signal);
+        logToCSV(signal);
+      }
+    });
+  } catch (error) {
+    console.error('❌ API Error:', error);
+  }
+}
+
+// Iniciar monitoramento otimizado
+startOptimizedPolling();
