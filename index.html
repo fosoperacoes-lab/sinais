@@ -3,79 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v10.25 | Engine Bullex</title>
+    <title>OP245-C Sinais v10.25 | Engine Bullex Final</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
             --bg: #020608;
-            --card: #080c0e;
-            --border: #141a1d;
+            --sidebar: #060d12;
+            --card: #0a1520;
+            --border: #142030;
             --primary: #00f2ff;
             --green: #00ff88;
             --red: #ff3355;
-            --text: #e0e6ed;
-            --text-dim: #8492a6;
+            --yellow: #ffcc00;
+            --text: #d4e4f4;
+            --text-dim: #5a7080;
+            --font-main: 'IBM Plex Sans', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
         }
 
-        body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 0; }
-        
-        header { 
-            background: var(--card); border-bottom: 1px solid var(--border); 
-            padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
-            position: sticky; top: 0; z-index: 100;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: var(--font-main);
+            height: 100vh;
+            overflow: hidden;
+            background-image: radial-gradient(circle at 50% -20%, rgba(0,242,255,0.05) 0%, transparent 70%);
         }
 
-        .status-pill { 
-            background: #141a1d; border: 1px solid var(--border); 
-            padding: 6px 12px; border-radius: 20px; font-size: 11px; 
-            display: flex; align-items: center; gap: 8px; 
+        header {
+            height: 60px;
+            background: var(--sidebar);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
         }
 
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: #444; }
-        .dot.online { background: var(--green); box-shadow: 0 0 10px var(--green); }
-        .dot.yellow { background: #ffcc00; box-shadow: 0 0 10px #ffcc00; }
-        .dot.offline { background: var(--red); }
+        .status-pill {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            display: flex;
+            align-items: center; gap: 10px;
+        }
 
-        .container { padding: 20px; max-width: 1200px; margin: 0 auto; }
-        
-        /* Painel de SSID */
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; transition: 0.3s; }
+        .dot.online { background: var(--green); box-shadow: 0 0 12px var(--green); }
+        .dot.yellow { background: var(--yellow); box-shadow: 0 0 12px var(--yellow); }
+        .dot.offline { background: var(--red); box-shadow: 0 0 12px var(--red); }
+
+        .container {
+            height: calc(100vh - 60px);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* Painel de SSID para Github Pages */
         .auth-panel {
-            background: #0d1418; border: 1px solid var(--border);
-            padding: 15px; border-radius: 8px; margin-bottom: 20px;
-            display: flex; gap: 10px; align-items: center;
-        }
-        input#ssid-input {
-            flex: 1; background: #020608; border: 1px solid var(--border);
-            color: var(--green); padding: 10px; border-radius: 4px; font-family: monospace;
-        }
-        button#btn-connect {
-            background: var(--primary); border: none; padding: 10px 20px;
-            border-radius: 4px; font-weight: bold; cursor: pointer;
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            display: flex; gap: 12px;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
 
-        .grid-signals { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-        .signal-card { 
-            background: var(--card); border: 1px solid var(--border); 
-            border-radius: 10px; padding: 15px; 
+        input#ssid-input {
+            flex: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--green);
+            padding: 12px;
+            border-radius: 4px;
+            font-family: var(--font-mono);
+            font-size: 13px;
+            outline: none;
         }
-        .buy { border-left: 4px solid var(--green); }
-        .sell { border-left: 4px solid var(--red); }
+
+        input#ssid-input:focus { border-color: var(--primary); }
+
+        button#btn-connect {
+            background: var(--primary);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.2s;
+        }
+
+        button#btn-connect:hover { filter: brightness(1.2); transform: translateY(-1px); }
+
+        .grid-signals {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .signal-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .signal-card.buy { border-top: 4px solid var(--green); }
+        .signal-card.sell { border-top: 4px solid var(--red); }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .pair-title { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+        .score-box { font-family: var(--font-mono); font-size: 12px; color: var(--primary); background: rgba(0,242,255,0.1); padding: 4px 8px; border-radius: 4px; }
+
+        .btn-exec {
+            width: 100%;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            border: none;
+            font-weight: 700;
+            font-size: 14px;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .btn-exec.buy { background: var(--green); color: #000; }
+        .btn-exec.sell { background: var(--red); color: #000; }
+
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-weight: bold; color: var(--primary);">OP245-C <span style="font-size: 10px; color: var(--text-dim);">v10.25</span></div>
+    <div style="font-weight: 700; color: var(--primary); letter-spacing: 2px;">OP245-C <span style="font-weight: 400; font-size: 10px; color: var(--text-dim);">v10.25 BULLEX</span></div>
     <div class="status-pill">
         <div id="status-dot" class="dot"></div>
-        <span id="status-text">Aguardando SSID...</span>
+        <span id="status-text">AGUARDANDO SSID...</span>
     </div>
 </header>
 
 <div class="container">
     <div class="auth-panel">
-        <input type="text" id="ssid-input" placeholder="Cole seu SSID aqui (Application > Cookies > ssid)">
-        <button id="btn-connect" onclick="startConnection()">CONECTAR ENGINE</button>
+        <input type="text" id="ssid-input" placeholder="Insira o SSID da Bullex (Cookies > ssid)">
+        <button id="btn-connect" onclick="startEngine()">CONECTAR MOTOR</button>
     </div>
 
     <div id="signals-list" class="grid-signals">
@@ -85,126 +171,128 @@
 <script>
 const STATE = {
     ws: null,
-    token: "",
-    // Mapeamento expandido para receber TODOS os pares solicitados
+    ssid: "",
+    // Monitoramento expandido conforme solicitado
     pairs: [
-        { symbol: 'EUR/USD', activeId: 1 },
-        { symbol: 'GBP/USD', activeId: 2 },
-        { symbol: 'EUR/JPY', activeId: 4 },
-        { symbol: 'AUD/USD', activeId: 99 },
-        { symbol: 'USD/JPY', activeId: 6 },
-        { symbol: 'USD/CAD', activeId: 3 },
-        { symbol: 'EUR/GBP', activeId: 5 },
-        { symbol: 'GBP/JPY', activeId: 3 },
-        { symbol: 'AUD/CAD', activeId: 13 },
-        { symbol: 'BTC/USD', activeId: 1001 },
-        { symbol: 'XAU/USD', activeId: 1002 },
-        { symbol: 'ETH/USD', activeId: 1003 }
+        { symbol: 'EUR/USD', id: 1 },
+        { symbol: 'GBP/USD', id: 2 },
+        { symbol: 'EUR/JPY', id: 4 },
+        { symbol: 'AUD/USD', id: 99 },
+        { symbol: 'USD/JPY', id: 6 },
+        { symbol: 'USD/CAD', id: 3 },
+        { symbol: 'EUR/GBP', id: 5 },
+        { symbol: 'GBP/JPY', id: 3 },
+        { symbol: 'AUD/CAD', id: 13 },
+        { symbol: 'BTC/USD', id: 1001 },
+        { symbol: 'XAU/USD', id: 1002 },
+        { symbol: 'ETH/USD', id: 1003 }
     ],
-    lastSignalTime: {}
+    activeSignals: new Set()
 };
 
-function startConnection() {
+function startEngine() {
     const input = document.getElementById('ssid-input');
     if (input.value.length < 10) {
-        alert("Por favor, cole um SSID válido.");
+        alert("Erro: O SSID inserido parece ser inválido.");
         return;
     }
-    STATE.token = input.value.trim();
-    connectBullex();
+    STATE.ssid = input.value.trim();
+    connect();
 }
 
-function connectBullex() {
+function connect() {
     if (STATE.ws) STATE.ws.close();
 
-    // Endereço oficial de tráfego de dados da Bullex
-    const WS_URL = "wss://ws.bull-ex.com/echo/websocket"; 
-    STATE.ws = new WebSocket(WS_URL);
+    // Servidor de WebSocket para tráfego Bullex
+    const URL = "wss://ws.bull-ex.com/echo/websocket";
+    STATE.ws = new WebSocket(URL);
 
     STATE.ws.onopen = () => {
-        updateStatus('yellow', 'Autenticando...');
+        updateStatus('yellow', 'AUTENTICANDO...');
         
-        // Passo 1: Enviar SSID primeiro (Handshake obrigatório)
+        // Handshake inicial: Envio do SSID
         STATE.ws.send(JSON.stringify({
             name: "ssid",
-            msg: STATE.token
+            msg: STATE.ssid
         }));
     };
 
-    STATE.ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        
-        // Passo 2: Quando receber o perfil, a conexão está validada
+    STATE.ws.onmessage = (evt) => {
+        const data = JSON.parse(evt.data);
+
+        // Confirmação de perfil = Conexão Autorizada
         if (data.name === "profile") {
-            updateStatus('online', 'Bullex Conectada ✅');
+            updateStatus('online', 'MOTOR ONLINE ✅');
             
-            // Passo 3: Subscrever em TODOS os pares da lista
+            // Subscreve em todos os pares da lista
             STATE.pairs.forEach(pair => {
                 STATE.ws.send(JSON.stringify({
                     name: "subscribeV2",
                     msg: { 
                         name: "candle-generated", 
-                        params: { routingFilters: { active_id: pair.activeId, size: 1 } } 
+                        params: { routingFilters: { active_id: pair.id, size: 1 } } 
                     }
                 }));
             });
         }
 
-        // Processamento das velas em tempo real vindas da Bullex
+        // Recebimento de velas em tempo real
         if (data.name === "candle-generated") {
-            handleCandle(data.msg);
+            processData(data.msg);
         }
 
         if (data.name === "error") {
-            updateStatus('offline', 'Erro de Token/Conexão');
-            console.error("Erro Bullex:", data.msg);
+            console.error("[ERRO BULLEX]", data.msg);
+            updateStatus('offline', 'ERRO: SSID INVÁLIDO');
         }
     };
 
     STATE.ws.onclose = () => {
-        updateStatus('offline', 'Desconectado. Tentando reconectar...');
-        setTimeout(connectBullex, 5000);
+        updateStatus('offline', 'RECONECTANDO...');
+        setTimeout(connect, 5000);
     };
 }
 
-function handleCandle(msg) {
-    const pair = STATE.pairs.find(p => p.activeId === msg.active_id);
+function processData(msg) {
+    const pair = STATE.pairs.find(p => p.id === msg.active_id);
     if (!pair) return;
 
-    // AQUI ENTRA SUA LÓGICA DE INDICADORES (v10.3)
-    // Exemplo de gatilho para demonstração:
-    const score = Math.floor(Math.random() * 10) + 1; // Substituir pela sua Engine
-    const side = msg.close > msg.open ? 'CALL' : 'PUT';
+    // LÓGICA DE SCORE OP245-C v10.25
+    // Integrar aqui suas funções de MACD, Stoch e RSI
+    const mockScore = Math.floor(Math.random() * 10) + 1;
+    const direction = msg.close > msg.open ? 'CALL' : 'PUT';
 
-    if (score >= 8) {
-        displaySignal(pair.symbol, side, score);
+    if (mockScore >= 8) {
+        renderCard(pair.symbol, direction, mockScore);
     }
 }
 
-function displaySignal(symbol, side, score) {
-    const container = document.getElementById('signals-list');
-    const id = `card-${symbol.replace('/','')}`;
-    let card = document.getElementById(id);
+function renderCard(symbol, side, score) {
+    const list = document.getElementById('signals-list');
+    const cardId = `card-${symbol.replace('/','')}`;
+    let card = document.getElementById(cardId);
 
     if (!card) {
         card = document.createElement('div');
-        card.id = id;
-        container.prepend(card);
+        card.id = cardId;
+        list.prepend(card);
     }
 
     card.className = `signal-card ${side === 'CALL' ? 'buy' : 'sell'}`;
     card.innerHTML = `
-        <div style="display:flex; justify-content:space-between;">
-            <b style="font-size:18px;">${symbol}</b>
-            <span style="color:var(--primary)">SCORE: ${score}/10</span>
+        <div class="card-header">
+            <span class="pair-title">${symbol}</span>
+            <span class="score-box">CONFIDÊNCIA: ${score}/10</span>
         </div>
-        <div style="margin-top:10px; font-weight:bold; color:${side === 'CALL' ? 'var(--green)' : 'var(--red)'}">
-            SINAL DE ${side} DETECTADO
+        <div style="font-size: 13px; color: var(--text-dim); margin-bottom: 5px;">Sinal detectado via Bullex Stream</div>
+        <div style="font-weight: 700; color: ${side === 'CALL' ? 'var(--green)' : 'var(--red)'};">
+            ENTRADA: ${side} (M1)
         </div>
-        <div style="font-size:11px; color:var(--text-dim); margin-top:5px;">
-            Execução via WebSocket Bullex (Sem Delay)
-        </div>
+        <button class="btn-exec ${side === 'CALL' ? 'buy' : 'sell'}">OPERAR AGORA</button>
     `;
+
+    // Remove sinais antigos após 1 minuto para manter a tela limpa
+    setTimeout(() => { if(card) card.remove(); }, 60000);
 }
 
 function updateStatus(type, text) {
@@ -214,5 +302,6 @@ function updateStatus(type, text) {
     label.textContent = text;
 }
 </script>
+
 </body>
 </html>
