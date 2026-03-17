@@ -225,8 +225,8 @@ function connect() {
     if (STATE.pingInterval) clearInterval(STATE.pingInterval);
     if (STATE.reconnectTimer) clearTimeout(STATE.reconnectTimer);
 
-    // Proxy local — repassa para IQ Option com headers corretos
-    const WS_URL = "ws://localhost:3000";
+    // Conexão direta IQ Option
+    const WS_URL = "wss://iqoption.com/echo/websocket";
     log(`Conectando em ${WS_URL}`, '#ffcc00');
 
     STATE.ws = new WebSocket(WS_URL);
