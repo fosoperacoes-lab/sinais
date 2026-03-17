@@ -3,3391 +3,410 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v10.15 | Engine</title>
+    <title>OP245-C Sinais v10.45 | Engine IQ Option</title>
 
-    <!-- PWA — instalação Android/Chrome -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#020608">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="OP245-C">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;700&display=swap" rel="stylesheet">
 
-    <!-- PWA — instalação iOS/Safari -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="OP245-C">
-    <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="apple-touch-startup-image" href="icon-512.png">
-
-    <!-- Ícones -->
-    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-body: #020608;
-            --bg-sidebar: #060d12;
-            --bg-card: #0a1520;
-            --bg-card2: #0d1a26;
+            --bg: #020608;
+            --sidebar: #060d12;
+            --card: #0a1520;
             --border: #142030;
-            --border2: #1c2f42;
-            --text-main: #d4e4f4;
-            --text-dim: #5a7080;
-            --text-mid: #8aaac0;
+            --primary: #00f2ff;
             --green: #00ff88;
-            --green-dim: #00c860;
             --red: #ff3355;
-            --red-dim: #cc2244;
-            --blue: #00aaff;
-            --blue-dim: #0077cc;
             --yellow: #ffcc00;
-            --cyan: #00eeff;
-            --purple: #aa55ff;
-            --font-mono: 'IBM Plex Mono', monospace;
+            --text: #d4e4f4;
+            --text-dim: #5a7080;
             --font-main: 'IBM Plex Sans', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
         }
 
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            background: var(--bg-body);
-            color: var(--text-main);
-            font-family: var(--font-main);
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-            font-size: 15px;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            background-image:
-                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,100,200,0.06) 0%, transparent 70%),
-                linear-gradient(180deg, #020608 0%, #040c14 100%);
+            background: var(--bg); color: var(--text); font-family: var(--font-main);
+            height: 100vh; overflow: hidden;
+            background-image: radial-gradient(circle at 50% -20%, rgba(0,242,255,0.05) 0%, transparent 70%);
         }
 
-        /* ── TOP NAV ── */
-        .top-nav {
-            position: fixed; top: 0; left: 0; right: 0; height: 52px;
-            background: rgba(6,13,18,0.95);
-            border-bottom: 1px solid var(--border2);
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 0 16px; z-index: 1000;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 1px 20px rgba(0,0,0,0.6);
+        header {
+            height: 60px; background: var(--sidebar); border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
         }
-        .nav-brand {
-            display: flex; align-items: center; gap: 10px;
-        }
-        .nav-logo {
-            font-family: var(--font-mono); font-size: 17px;
-            color: #D97757; letter-spacing: 3px; font-weight: 700;
-            text-shadow: 0 0 14px rgba(217,119,87,0.45);
-        }
-        .nav-version {
-            font-size: 12px; color: var(--text-mid);
-            background: var(--bg-card2); border: 1px solid var(--border);
-            padding: 3px 10px; border-radius: 3px; font-family: var(--font-mono);
+
+        .header-left { display: flex; align-items: center; gap: 16px; }
+
+        .badge-iq {
+            background: rgba(0,242,255,0.08);
+            border: 1px solid rgba(0,242,255,0.2);
+            color: var(--primary);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 4px;
             letter-spacing: 1px;
         }
-        .nav-right { display: flex; gap: 6px; align-items: center; }
-        .icon-btn {
-            cursor: pointer; font-size: 17px; padding: 6px 8px;
-            border-radius: 4px; transition: 0.15s; display: inline-flex;
-            align-items: center; justify-content: center;
-            border: 1px solid transparent;
-        }
-        .icon-btn:hover { background: var(--bg-card); border-color: var(--border2); }
 
-        #sys-status {
-            font-size: 13px; font-family: var(--font-mono);
-            display: flex; align-items: center; gap: 6px;
-            padding: 5px 12px; border-radius: 4px;
-            background: var(--bg-card2); border: 1px solid var(--border);
-        }
-        .status-dot {
-            width: 7px; height: 7px; border-radius: 50%;
-            background: var(--green); box-shadow: 0 0 8px var(--green);
-            animation: pulse 2s infinite;
-        }
-        .status-dot.red { background: var(--red); box-shadow: 0 0 8px var(--red); animation: none; }
-        .status-dot.yellow { background: var(--yellow); box-shadow: 0 0 8px var(--yellow); }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-        #clock {
-            font-family: var(--font-mono); font-size: 15px;
-            color: var(--blue); letter-spacing: 2px;
-            padding: 5px 12px; background: var(--bg-card2);
-            border: 1px solid var(--border); border-radius: 4px;
-            min-width: 90px; text-align: center; font-weight: 500;
+        .status-pill {
+            background: var(--bg); border: 1px solid var(--border);
+            padding: 6px 14px; border-radius: 30px; font-size: 11px;
+            font-family: var(--font-mono); display: flex; align-items: center; gap: 10px;
         }
 
-        /* ── API STATUS BAR ── */
-        #api-status-bar {
-            position: fixed; top: 52px; left: 0; right: 0; z-index: 999;
-            padding: 6px 16px; font-size: 12px; font-family: var(--font-mono);
-            display: flex; align-items: center; gap: 10px;
-            background: rgba(10,21,32,0.9); border-bottom: 1px solid var(--border);
-            transition: 0.3s;
-        }
-        #api-status-bar.connected { border-bottom-color: rgba(0,255,136,0.3); }
-        #api-status-bar.error { border-bottom-color: rgba(255,51,85,0.3); }
-        .api-badge {
-            padding: 2px 10px; border-radius: 3px; font-size: 13px; font-weight: bold;
-            background: var(--bg-card); border: 1px solid var(--border2);
-        }
-        #api-status-bar.connected { border-bottom-color: rgba(0,255,136,0.3); }
-        #api-status-bar.error { border-bottom-color: rgba(255,51,85,0.3); }
-        .api-badge.ok { border-color: var(--green-dim); color: var(--green); }
-        .api-badge.err { border-color: var(--red-dim); color: var(--red); }
-        .api-badge.sim { border-color: var(--yellow); color: var(--yellow); }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; transition: 0.3s; }
+        .dot.online { background: var(--green); box-shadow: 0 0 12px var(--green); animation: pulse 2s infinite; }
+        .dot.yellow { background: var(--yellow); box-shadow: 0 0 12px var(--yellow); }
+        .dot.offline { background: var(--red); box-shadow: 0 0 12px var(--red); }
 
-        /* ── SIDEBAR ── */
-        #sidebar {
-            width: 310px; background: var(--bg-sidebar);
-            border-right: 1px solid var(--border2);
-            padding: 110px 14px 14px; overflow-y: auto;
-            height: 100%; transition: transform 0.3s ease, margin-left 0.3s ease;
-            flex-shrink: 0;
-        }
-        #sidebar.hidden { margin-left: -310px; }
-
-        ::-webkit-scrollbar { width: 3px; height: 3px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-
-        .config-block { margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 14px; }
-        .config-block:last-child { border-bottom: none; }
-        .block-label {
-            font-size: 12px; color: var(--text-mid); font-weight: 700;
-            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .block-label::after {
-            content: ''; flex: 1; height: 1px; background: var(--border);
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 6px var(--green); }
+            50% { box-shadow: 0 0 16px var(--green); }
         }
 
-        .grid-tags { display: grid; gap: 4px; margin-top: 6px; }
-        .grid-2 { grid-template-columns: 1fr 1fr; }
-        .grid-3 { grid-template-columns: repeat(3, 1fr); }
-        .grid-4 { grid-template-columns: repeat(4, 1fr); }
-        .tag-btn {
-            background: var(--bg-card); border: 1px solid var(--border);
-            padding: 9px 4px; font-size: 13px; text-align: center;
-            border-radius: 4px; cursor: pointer; color: var(--text-mid);
-            transition: 0.15s; font-family: var(--font-main); font-weight: 600;
-            letter-spacing: 0.3px;
-        }
-        .tag-btn:hover { border-color: var(--border2); color: var(--text-mid); }
-        .tag-btn.active {
-            background: rgba(0,170,255,0.1); border-color: var(--blue-dim);
-            color: var(--blue); box-shadow: inset 0 0 8px rgba(0,170,255,0.05);
+        .container { height: calc(100vh - 200px); padding: 20px; overflow-y: auto; }
+
+        .auth-panel {
+            background: var(--card); border: 1px solid var(--border);
+            padding: 16px 20px; border-radius: 8px; margin: 12px 20px;
+            display: flex; gap: 12px; align-items: center;
         }
 
-        /* ── Grupos de pares colapsáveis ── */
-        .asset-group { margin-bottom: 6px; }
-        .asset-group-header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 5px 8px; border-radius: 4px; cursor: pointer;
-            background: var(--bg-card); border: 1px solid var(--border);
-            user-select: none;
-        }
-        .asset-group-header:hover { border-color: var(--border2); }
-        .asset-group-left { display: flex; align-items: center; gap: 7px; }
-        .asset-group-label { font-size: 11px; font-weight: 700; color: var(--text-mid); letter-spacing: 0.5px; text-transform: uppercase; }
-        .asset-group-count { font-size: 10px; color: var(--blue); font-family: var(--font-mono); }
-        .asset-group-arrow { font-size: 9px; color: var(--text-dim); transition: transform 0.2s; }
-        .asset-group-arrow.open { transform: rotate(180deg); }
-        .asset-group-body {
-            display: grid; grid-template-columns: repeat(4, 1fr);
-            gap: 4px; margin-top: 4px; overflow: hidden;
-            max-height: 0; transition: max-height 0.25s ease;
-        }
-        .asset-group-body.open { max-height: 200px; }
-        .asset-chip {
-            padding: 5px 3px; font-size: 10px; text-align: center;
-            border-radius: 3px; cursor: pointer; font-weight: 700;
-            font-family: var(--font-mono); letter-spacing: 0.2px;
-            background: var(--bg-card); border: 1px solid var(--border);
-            color: var(--text-dim); transition: 0.15s; white-space: nowrap;
-        }
-        .asset-chip:hover { border-color: var(--border2); color: var(--text-mid); }
-        .asset-chip.active {
-            background: rgba(0,170,255,0.1); border-color: var(--blue-dim);
-            color: var(--blue);
+        .auth-info {
+            font-family: var(--font-mono); font-size: 10px; color: var(--text-dim);
+            white-space: nowrap;
         }
 
-        .chk-group { display: flex; flex-direction: column; gap: 7px; margin-top: 10px; }
-        .chk-label {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 14px; color: var(--text-main); cursor: pointer;
+        input#ssid-input {
+            flex: 1; background: var(--bg); border: 1px solid var(--border);
+            color: var(--green); padding: 12px; border-radius: 4px;
+            font-family: var(--font-mono); font-size: 13px; outline: none;
+            transition: border-color 0.2s;
         }
-        .chk-label input { accent-color: var(--blue); width: 15px; height: 15px; }
+        input#ssid-input:focus { border-color: var(--primary); }
 
-        .slider-row { margin-top: 12px; }
-        .slider-header {
-            display: flex; justify-content: space-between;
-            font-size: 13px; color: var(--text-mid); margin-bottom: 6px;
+        button#btn-connect {
+            background: var(--primary); color: #000; border: none;
+            padding: 12px 24px; border-radius: 4px; font-weight: 700;
+            cursor: pointer; font-family: var(--font-mono); font-size: 12px;
+            letter-spacing: 1px; transition: opacity 0.2s;
+            white-space: nowrap;
         }
-        .slider-header b { color: var(--text-main); font-weight: 600; font-family: var(--font-mono); font-size: 14px; }
+        button#btn-connect:hover { opacity: 0.85; }
+        button#btn-connect:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        input[type="range"] {
-            width: 100%; height: 3px; background: var(--border2);
-            outline: none; -webkit-appearance: none; border-radius: 2px;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none; width: 13px; height: 13px;
-            background: var(--blue); border-radius: 50%; cursor: pointer;
-            box-shadow: 0 0 6px rgba(0,170,255,0.4);
-        }
-        input[type="range"]:disabled { opacity: 0.3; cursor: not-allowed; }
-        input[type="range"]:disabled::-webkit-slider-thumb { background: #333; box-shadow: none; }
-
-        /* ── MAIN ── */
-        #main { flex: 1; padding: 110px 16px 20px; overflow-y: auto; min-width: 0; }
-
-        .section-header {
-            display: flex; align-items: center; gap: 10px;
-            margin-bottom: 14px; flex-wrap: wrap;
-        }
-        .section-header h3 {
-            margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 1px;
-            text-transform: uppercase; color: var(--text-mid);
-            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-        }
-        .header-badge {
-            background: var(--blue-dim); color: white;
-            padding: 3px 9px; border-radius: 3px; font-size: 12px;
-            font-weight: 700; font-family: var(--font-mono); letter-spacing: 1px;
-        }
-        .header-badge.vela {
-            background: var(--bg-card2); border: 1px solid var(--border2);
-            color: var(--text-dim);
-        }
-
-        /* ── STATS GRID ── */
-        .stats-grid {
-            display: grid; grid-template-columns: repeat(6, 1fr);
-            gap: 10px; margin-bottom: 18px;
-        }
-        .stat-card {
-            background: var(--bg-card); padding: 12px 10px;
-            border-radius: 6px; border: 1px solid var(--border);
-            position: relative; overflow: hidden;
-            transition: border-color 0.3s;
-        }
-        .stat-card::before {
-            content: ''; position: absolute; top: 0; left: 0; right: 0;
-            height: 2px;
-        }
-        .stat-card.s-total::before { background: var(--text-dim); }
-        .stat-card.s-buy::before { background: var(--green-dim); }
-        .stat-card.s-sell::before { background: var(--red-dim); }
-        .stat-card.s-conf::before { background: var(--blue-dim); }
-        .stat-card.s-pend::before { background: var(--yellow); }
-        .stat-card.s-rate::before { background: var(--cyan); }
-        .stat-card span { color: var(--text-mid); font-size: 12px; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-        .stat-card h2 { margin: 0; font-size: 26px; font-weight: 700; font-family: var(--font-mono); }
-
-        /* ── TABLE ── */
-        .table-section {
-            background: var(--bg-card); border: 1px solid var(--border2);
-            border-radius: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
-        }
-        table { width: 100%; border-collapse: collapse; min-width: 820px; }
-        th {
-            background: var(--bg-card2); color: var(--text-mid);
-            padding: 13px 14px; font-size: 12px; text-transform: uppercase;
-            text-align: left; border-bottom: 1px solid var(--border2);
-            white-space: nowrap; letter-spacing: 1.5px; font-weight: 700;
-            font-family: var(--font-main);
-        }
-        td {
-            padding: 12px 14px; border-bottom: 1px solid var(--border);
-            font-size: 14px; white-space: nowrap; transition: 0.2s;
-            font-family: var(--font-main);
-        }
-        tbody tr:hover { background: rgba(255,255,255,0.02); }
-        tbody tr:last-child td { border-bottom: none; }
-
-        .badge-buy {
-            color: var(--green); border: 1px solid var(--green-dim);
-            padding: 4px 11px; border-radius: 3px; font-weight: 700;
-            font-size: 12px; letter-spacing: 1px;
-            background: rgba(0,255,136,0.06);
-        }
-        .badge-sell {
-            color: var(--red); border: 1px solid var(--red-dim);
-            padding: 4px 11px; border-radius: 3px; font-weight: 700;
-            font-size: 12px; letter-spacing: 1px;
-            background: rgba(255,51,85,0.06);
-        }
-        .status-conf {
-            color: var(--blue); border: 1px solid var(--blue-dim);
-            padding: 3px 10px; border-radius: 12px; font-size: 12px;
-            background: rgba(0,170,255,0.06); font-family: var(--font-mono);
-        }
-        .status-pend {
-            color: var(--yellow); border: 1px solid var(--yellow);
-            padding: 3px 10px; border-radius: 12px; font-size: 12px;
-            background: rgba(255,204,0,0.06); font-family: var(--font-mono);
-        }
-        .badge-tf {
-            background: rgba(0,170,255,0.1); border: 1px solid var(--blue-dim);
-            padding: 3px 8px; border-radius: 3px; font-size: 12px;
-            color: var(--blue); font-family: var(--font-mono);
-        }
-        .badge-src {
-            font-size: 13px; padding: 2px 7px; border-radius: 3px;
-            font-family: var(--font-mono); font-weight: bold;
-        }
-        .badge-src.real { color: var(--green); border: 1px solid var(--green-dim); background: rgba(0,255,136,0.06); }
-        .badge-src.sim { color: var(--yellow); border: 1px solid var(--yellow); background: rgba(255,204,0,0.06); }
-
-        /* ── RESULTADO WIN/LOSS ── */
-        .badge-win  { font-size:12px; padding:2px 8px; border-radius:3px; font-family:var(--font-mono); font-weight:bold;
-                      color:var(--green); border:1px solid var(--green-dim); background:rgba(0,255,136,0.08); letter-spacing:1px; }
-        .badge-loss { font-size:12px; padding:2px 8px; border-radius:3px; font-family:var(--font-mono); font-weight:bold;
-                      color:var(--red); border:1px solid var(--red-dim); background:rgba(255,51,85,0.08); letter-spacing:1px; }
-        .badge-open { font-size:12px; padding:2px 8px; border-radius:3px; font-family:var(--font-mono);
-                      color:var(--text-dim); border:1px solid var(--border2); }
-
-        /* ── TOGGLE SWITCH ── */
-        .toggle-switch { position:relative; display:inline-block; width:36px; height:20px; flex-shrink:0; }
-        .toggle-switch input { opacity:0; width:0; height:0; }
-        .toggle-slider { position:absolute; cursor:pointer; inset:0; background:var(--border2); border-radius:20px; transition:.3s; }
-        .toggle-slider::before { content:''; position:absolute; width:14px; height:14px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
-        .toggle-switch input:checked + .toggle-slider { background:var(--blue); }
-        .toggle-switch input:checked + .toggle-slider::before { transform:translateX(16px); }
-
-        /* ── ADVANCED FILTER ROW ── */
-        .adv-filter-row { padding:8px 10px; border-radius:4px; border:1px solid var(--border2); background:rgba(255,255,255,0.02); }
-        .adv-filter-row.active { border-color:var(--blue); background:rgba(0,120,255,0.04); }
-
-
-        .badge-mm200 {
-            font-size: 13px; padding: 2px 8px; border-radius: 3px;
-            font-family: var(--font-mono); font-weight: bold; letter-spacing: 1px;
-        }
-        .badge-mm200.bull { color: var(--green); border: 1px solid var(--green-dim); background: rgba(0,255,136,0.06); }
-        .badge-mm200.bear { color: var(--red); border: 1px solid var(--red-dim); background: rgba(255,51,85,0.06); }
-        .badge-mm200.neut { color: var(--text-dim); border: 1px solid var(--border2); }
-
-        /* ── STOCH RSI GAUGE ── */
-        .stoch-gauge {
-            display: inline-flex; align-items: center; gap: 6px;
-            font-family: var(--font-mono); font-size: 13px;
-        }
-        .stoch-bar-wrap {
-            width: 40px; height: 6px; background: var(--border2);
-            border-radius: 3px; overflow: hidden; display: inline-block;
-        }
-        .stoch-bar-fill {
-            height: 100%; border-radius: 3px; transition: width 0.4s, background 0.4s;
-        }
-
-        /* ── MACD ROW ── */
-        .macd-indicator {
-            display: inline-flex; align-items: center; gap: 4px;
-            font-family: var(--font-mono); font-size: 13px;
-        }
-        .macd-bar {
-            width: 4px; border-radius: 1px; display: inline-block;
-        }
-
-        /* ── POPUP ── */
-        #popup-container {
-            position: fixed; top: 62px; right: 20px; z-index: 9999;
-            display: flex; flex-direction: column; gap: 8px; pointer-events: none;
-        }
-        .popup-alert {
-            background: rgba(6,13,18,0.97); border: 1px solid var(--border2);
-            padding: 16px; border-radius: 6px; width: 280px;
-            animation: slideIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
-            pointer-events: all; box-shadow: 0 12px 40px rgba(0,0,0,0.8);
-            backdrop-filter: blur(20px);
-        }
-        .popup-alert.buy-alert { border-color: rgba(0,200,96,0.4); }
-        .popup-alert.sell-alert { border-color: rgba(255,51,85,0.4); }
-        .popup-title {
-            display: flex; align-items: center; gap: 8px;
-            font-size: 18px; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 2px;
-            border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 12px;
+        .how-to {
+            margin: 0 20px 8px;
+            background: rgba(255,204,0,0.05);
+            border: 1px solid rgba(255,204,0,0.15);
+            border-radius: 6px;
+            padding: 10px 14px;
             font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--yellow);
+            display: flex; align-items: flex-start; gap: 10px;
         }
-        .popup-circle { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
-        .txt-buy { color: var(--green); } .txt-sell { color: var(--red); }
-        .bg-buy { background: var(--green); box-shadow: 0 0 8px var(--green); }
-        .bg-sell { background: var(--red); box-shadow: 0 0 8px var(--red); }
-        .popup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 8px; }
-        .p-item { display: flex; flex-direction: column; }
-        .p-label { font-size: 13px; color: var(--text-dim); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 1px; }
-        .p-val { font-size: 20px; font-weight: 600; color: white; font-family: var(--font-mono); }
-        .popup-src { font-size: 13px; font-family: var(--font-mono); margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); color: var(--text-dim); display: flex; justify-content: space-between; }
+        .how-to-icon { font-size: 14px; flex-shrink: 0; }
+        .how-to-text { line-height: 1.7; }
+        .how-to-text b { color: #fff; }
 
-        @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-        @keyframes fadeOutRow { to { opacity: 0; transform: translateY(-4px); } }
-
-        /* ── ERROR TOAST ── */
-        #error-toast {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(255,51,85,0.1); border: 1px solid var(--red-dim);
-            color: var(--red); padding: 10px 20px; border-radius: 6px;
-            font-family: var(--font-mono); font-size: 12px; z-index: 9998;
-            display: none; animation: slideIn 0.3s ease;
+        #debug-terminal {
+            height: 120px; background: #000; border-top: 2px solid var(--border);
+            color: #0f0; font-family: var(--font-mono); font-size: 10px;
+            padding: 10px; overflow-y: auto; position: fixed; bottom: 0; width: 100%;
         }
 
-        /* ── INDICATOR LIGHTS ── */
-        .ind-light {
-            display: inline-block; width: 6px; height: 6px;
-            border-radius: 50%; vertical-align: middle; margin-right: 4px;
-        }
-        .ind-light.on-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
-        .ind-light.on-red { background: var(--red); box-shadow: 0 0 6px var(--red); }
-        .ind-light.on-yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
-        .ind-light.off { background: var(--text-dim); }
+        .grid-signals { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
 
-        /* ── RESPONSIVE ── */
-        @media (max-width: 900px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 600px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .stat-card h2 { font-size: 18px; }
-            #sidebar {
-                position: fixed; top: 52px; left: 0;
-                height: calc(100vh - 52px); z-index: 1001; margin-left: 0;
-                transform: translateX(0); box-shadow: 5px 0 30px rgba(0,0,0,0.9);
-                width: 280px;
-            }
-            #sidebar.hidden { transform: translateX(-100%); margin-left: 0; }
-            #popup-container { top: 62px; right: 0; left: 0; align-items: center; width: 100%; }
-            .popup-alert { width: 90%; max-width: 320px; }
+        .signal-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 10px; padding: 15px;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+
+        .signal-card .pair { font-weight: 700; font-size: 15px; color: var(--text); }
+        .signal-card .score { float: right; color: var(--primary); font-family: var(--font-mono); font-size: 13px; }
+        .signal-card .direction { margin-top: 8px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 1px; }
+        .signal-card .time { font-size: 10px; color: var(--text-dim); margin-top: 4px; font-family: var(--font-mono); }
+
+        .empty-state {
+            text-align: center; color: var(--text-dim); font-family: var(--font-mono);
+            font-size: 12px; padding: 60px 20px;
         }
     </style>
 </head>
 <body>
 
-<!-- ── TOP NAV ── -->
-<nav class="top-nav">
-    <div class="nav-brand">
-        <span class="icon-btn" onclick="toggleSidebar()">⚙️</span>
-        <span class="nav-logo">OP245-C</span>
-        <span class="nav-version">SINAIS v10.15 ENGINE</span>
+<header>
+    <div class="header-left">
+        <div style="font-weight: 700; color: var(--primary); letter-spacing: 2px;">
+            OP245-C <span style="font-weight: 400; font-size: 10px; color: var(--text-dim);">v10.45 ENGINE</span>
+        </div>
+        <div class="badge-iq">IQ OPTION</div>
     </div>
-    <div class="nav-right">
-        <span id="sys-status">
-            <span class="status-dot" id="status-dot"></span>
-            <span id="status-label">Inicializando</span>
-        </span>
-        <span id="btn-audio" class="icon-btn" onclick="toggleAudio()" title="Mudo/Som">🔊</span>
-        <span id="btn-pause" class="icon-btn" onclick="togglePause()" title="Pausar Engine">🔔</span>
-        <div id="clock">00:00:00</div>
+    <div class="status-pill">
+        <div id="status-dot" class="dot"></div>
+        <span id="status-text">AGUARDANDO...</span>
     </div>
-</nav>
+</header>
 
-<!-- ── API STATUS BAR ── -->
-<div id="api-status-bar">
-    <span id="api-source-badge" class="api-badge sim">SIM</span>
-    <span id="api-status-text" style="color: var(--text-dim); font-size:13px;">Aguardando conexão com API...</span>
-    <span style="margin-left: auto; color: var(--text-dim); font-size:13px;" id="api-last-update">—</span>
+<!-- Instrução para obter o SSID -->
+<div class="how-to" id="how-to-box">
+    <span class="how-to-icon">⚡</span>
+    <span class="how-to-text">
+        <b>Como obter o SSID da IQ Option:</b>
+        Acesse <b>iqoption.com</b> → faça login → abra o DevTools (<b>F12</b>) → aba <b>Network</b> → filtre por <b>WS</b> → clique na conexão <b>echo/websocket</b> → aba <b>Messages</b> → copie o valor de <b>"msg"</b> da mensagem <b>{"name":"ssid",...}</b>
+    </span>
 </div>
 
-<div id="popup-container"></div>
-<div id="error-toast"></div>
+<div class="auth-panel">
+    <span class="auth-info">SSID&nbsp;IQ&nbsp;→</span>
+    <input type="text" id="ssid-input" placeholder="Cole aqui o SSID da IQ Option">
+    <button id="btn-connect" onclick="startEngine()">CONECTAR</button>
+</div>
 
-<!-- ── SIDEBAR ── -->
-<aside id="sidebar">
-
-    <!-- 1. FONTE DE DADOS -->
-    <div class="config-block">
-        <div class="block-label">Fonte de Dados</div>
-        <div style="margin-top:6px;">
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
-                <span id="apikey-status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0;"></span>
-                <span id="apikey-status-label" style="font-size:12px; color:var(--text-mid);">Chave configurada</span>
-            </div>
-            <div id="apikey-override-wrap" style="display:none; margin-top:6px;">
-                <div style="font-size:13px; color:var(--text-dim); margin-bottom:4px;">Substituir API Key:</div>
-                <input type="password" id="cfg-apikey"
-                    placeholder="Cole nova chave aqui"
-                    style="width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-main); padding:8px 10px; border-radius:4px; font-family:var(--font-mono); font-size:12px; outline:none;"
-                    oninput="onApiKeyChange()">
-            </div>
-            <div id="apikey-limit-msg" style="display:none; margin-top:8px; padding:8px 10px; background:rgba(255,204,0,0.07); border:1px solid rgba(255,204,0,0.3); border-radius:4px; font-size:12px; color:var(--yellow); line-height:1.5;">
-                ⚠ Limite da API atingido.<br>
-                <span style="color:var(--text-mid);">Insira outra chave TwelveData ou aguarde reset.</span>
-            </div>
-            <button onclick="toggleApiKeyField()" style="margin-top:8px; width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-mid); padding:6px; border-radius:4px; cursor:pointer; font-family:var(--font-main); font-size:12px;">
-                Usar outra chave
-            </button>
+<div class="container">
+    <div id="signals-list" class="grid-signals">
+        <div class="empty-state" id="empty-msg">
+            Conecte o engine para receber sinais em tempo real.
         </div>
     </div>
+</div>
 
-    <!-- 2. TELEGRAM -->
-    <div class="config-block">
-        <div class="block-label">Telegram</div>
-        <div style="margin-top:6px;">
-            <div class="slider-header"><span>Bot Token:</span></div>
-            <input type="password" id="cfg-tg-token"
-                placeholder="123456:ABC-DEF..."
-                style="width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-main); padding:7px 10px; border-radius:4px; font-family:var(--font-mono); font-size:11px; margin-top:4px; outline:none;"
-                oninput="onTelegramChange()">
-            <div class="slider-header" style="margin-top:8px;"><span>Chat ID do Grupo:</span></div>
-            <input type="text" id="cfg-tg-chatid"
-                placeholder="Ex: -5198350830"
-                style="width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-main); padding:7px 10px; border-radius:4px; font-family:var(--font-mono); font-size:11px; margin-top:4px; outline:none;"
-                oninput="onTelegramChange()">
-            <div style="margin-top:8px; display:flex; gap:6px; align-items:center;">
-                <span id="tg-status-dot" style="width:7px;height:7px;border-radius:50%;background:var(--text-dim);flex-shrink:0;"></span>
-                <span id="tg-status-label" style="font-size:11px; color:var(--text-dim);">Não configurado</span>
-            </div>
-            <button onclick="testTelegram()" style="margin-top:8px; width:100%; background:var(--bg-card); border:1px solid var(--border2); color:var(--text-mid); padding:6px; border-radius:4px; cursor:pointer; font-family:var(--font-main); font-size:12px; font-weight:600;">
-                📤 Testar Envio
-            </button>
-            <div class="chk-group" style="margin-top:8px;">
-                <label class="chk-label"><input type="checkbox" id="chk-tg-active" onchange="STATE.telegram.active = this.checked"> Enviar alertas ao Telegram</label>
-            </div>
-        </div>
-    </div>
-
-    <!-- 3. TIMEFRAME -->
-    <div class="config-block">
-        <div class="block-label">Timeframe</div>
-        <div class="grid-tags grid-3" style="margin-bottom:4px;">
-            <div class="tag-btn tf-btn" id="tf-M1" onclick="toggleTF('M1')">M1</div>
-            <div class="tag-btn tf-btn active" id="tf-M5" onclick="toggleTF('M5')">M5</div>
-            <div class="tag-btn tf-btn active" id="tf-M10" onclick="toggleTF('M10')">M10</div>
-        </div>
-        <div class="tag-btn" id="btn-todas-tf" onclick="toggleAllTF()" style="width:100%; display:block; padding:6px 0; margin-top:4px;">Todas</div>
-    </div>
-
-    <!-- 4. FILTRO DE VELA -->
-    <div class="config-block">
-        <div class="block-label">Filtro de Vela</div>
-        <div class="grid-tags grid-2">
-            <div class="tag-btn active" id="vela-atual" onclick="toggleVela('Atual')">Vela Atual</div>
-            <div class="tag-btn active" id="vela-prox" onclick="toggleVela('Próxima')">Próxima Vela</div>
-        </div>
-        <div class="chk-group" style="margin-top:8px;">
-            <label class="chk-label"><input type="checkbox" id="chk-popup" checked onchange="STATE.settings.popup = this.checked"> Alertas Pop-up</label>
-            <label class="chk-label"><input type="checkbox" id="chk-macd" checked onchange="STATE.settings.useMacd = this.checked"> Filtro MACD ativo</label>
-            <label class="chk-label"><input type="checkbox" id="chk-stoch" checked onchange="STATE.settings.useStoch = this.checked"> Filtro Stoch RSI ativo</label>
-            <label class="chk-label"><input type="checkbox" id="chk-mm200" checked onchange="STATE.settings.useMM200 = this.checked"> Filtro MM200 tendência</label>
-            <div style="margin-top:6px; padding:6px 0; border-top:1px solid var(--border2);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-                    <span style="font-size:11px; color:var(--text-dim); font-family:var(--font-mono);">📏 MM200 distância mín.</span>
-                    <span style="font-size:12px; font-weight:700; color:var(--yellow); font-family:var(--font-mono);" id="val-mm200-dist">0.1%</span>
-                </div>
-                <input type="range" id="cfg-mm200-dist" min="0" max="5" step="0.1" value="0.1" style="width:100%; accent-color:var(--yellow);"
-                    title="Distância mínima do preço à MM200 para filtrar. 0 = qualquer distância. 0.1% = padrão (zona neutra livre)."
-                    oninput="STATE.settings.mm200MinDist=+this.value; document.getElementById('val-mm200-dist').textContent=this.value+'%';">
-                <div style="font-size:10px; color:var(--text-dim); margin-top:2px;">0% = bloqueia qualquer desvio · 0.1% padrão · 5% = só tendências fortes</div>
-            </div>
-            <label class="chk-label"><input type="checkbox" id="chk-ignore-otc" checked onchange="STATE.settings.ignoreOTC = this.checked"> Ignorar OTC</label>
-            <label class="chk-label" title="CSV: EUR/USD M1=32% · XAUUSD M1=43% — M1 só para BTC/USD (75%)"><input type="checkbox" id="chk-block-m1" checked onchange="STATE.settings.blockM1NonCrypto = this.checked"> <span>🔒 Bloquear M1 não-cripto</span></label>
-            <label class="chk-label" title="CSV: 01h-06h BRT = sessão asiática — 05h=0% WIN, 04h=33% WIN"><input type="checkbox" id="chk-asia-dead" checked onchange="STATE.settings.blockAsiaDeadZone = this.checked"> <span>🌙 Bloquear zona morta 01h-06h</span></label>
-            <label class="chk-label" title="LOSSes observados em Vela Atual para M5/M10 — força Próxima Vela nesses TFs"><input type="checkbox" id="chk-block-atual" onchange="STATE.settings.blockVelaAtualM5M10 = this.checked"> <span>⏱ Bloquear 'Vela Atual' M5/M10</span></label>
-        </div>
-        <div style="margin-top:10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                <span style="font-size:11px; color:var(--text-main); font-family:var(--font-mono);">🎯 Score mínimo</span>
-                <span style="font-size:12px; font-weight:700; color:var(--blue); font-family:var(--font-mono);" id="val-score-thr">4</span>
-            </div>
-            <input type="range" class="ind-slider" id="cfg-score-thr" min="0" max="12" value="4"
-                oninput="STATE.settings.scoreThreshold=+this.value; document.getElementById('val-score-thr').textContent=this.value==='0'?'OFF':this.value;">
-            <div style="font-size:10px; color:var(--text-dim); margin-top:3px;">0 = desativado · 4-6 = padrão · 7+ = exige Multi-TF ou crossover</div>
-        </div>
-        <div id="otc-status-bar" style="display:none; margin-top:10px; padding:8px 10px; border-radius:4px; background:rgba(255,204,0,0.07); border:1px solid rgba(255,204,0,0.3);">
-            <div style="font-size:11px; color:var(--yellow); font-weight:700; margin-bottom:4px;">⚠ MERCADO OTC ATIVO</div>
-            <div id="otc-status-text" style="font-size:10px; color:var(--text-dim); line-height:1.5;"></div>
-        </div>
-    </div>
-
-    <!-- 5. MODO DE CONFIRMAÇÃO -->
-    <div class="config-block">
-        <div class="block-label">Modo de Confirmação</div>
-        <div style="display:flex; flex-direction:column; gap:5px; margin-top:8px;">
-            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:4px; border:1px solid var(--border2); background:var(--bg-card);">
-                <input type="radio" name="confirm-mode" value="none" checked onchange="setConfirmMode(this.value)" style="accent-color:var(--blue);">
-                <span style="font-size:12px; font-family:var(--font-mono);">
-                    <b style="color:var(--text-main)">Sem confirmação</b>
-                    <span style="color:var(--text-dim)"> — sinal imediato ✓</span>
-                </span>
-            </label>
-            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:4px; border:1px solid var(--border2); background:var(--bg-card);">
-                <input type="radio" name="confirm-mode" value="open" onchange="setConfirmMode(this.value)" style="accent-color:var(--blue);">
-                <span style="font-size:12px; font-family:var(--font-mono);">
-                    <b style="color:var(--text-main)">Na abertura</b>
-                    <span style="color:var(--text-dim)"> — entra quando a vela abre</span>
-                </span>
-            </label>
-            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 8px; border-radius:4px; border:1px solid var(--border2); background:var(--bg-card);">
-                <input type="radio" name="confirm-mode" value="tick" onchange="setConfirmMode(this.value)" style="accent-color:var(--blue);">
-                <span style="font-size:12px; font-family:var(--font-mono);">
-                    <b style="color:var(--text-main)">Próximo tick</b>
-                    <span style="color:var(--text-dim)"> — confirma se Stoch ainda na zona</span>
-                </span>
-            </label>
-        </div>
-    </div>
-
-    <!-- 6. FILTROS AVANÇADOS -->
-    <div class="config-block">
-        <div class="block-label">Filtros Avançados</div>
-
-        <!-- Liquidez -->
-        <div class="adv-filter-row" id="adf-liquidity">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div style="font-size:12px; color:var(--text-main); font-weight:600;">🕐 Horário de Liquidez</div>
-                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">Londres 08-17h · Nova York 13-22h BRT</div>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="chk-liquidity" onchange="STATE.settings.useLiquidity=this.checked; updateAdvFilterUI()">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div id="liquidity-status" style="margin-top:6px; font-size:11px; font-family:var(--font-mono); color:var(--text-dim);">—</div>
-        </div>
-
-        <!-- Notícias -->
-        <div class="adv-filter-row" id="adf-news" style="margin-top:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div style="font-size:12px; color:var(--text-main); font-weight:600;">📰 Filtro de Notícias</div>
-                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">Bloqueia ±30min de eventos de alto impacto</div>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="chk-news" onchange="STATE.settings.useNews=this.checked; if(this.checked) fetchEconomicNews();">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div id="news-status" style="margin-top:6px; font-size:11px; font-family:var(--font-mono); color:var(--text-dim);">—</div>
-        </div>
-
-        <!-- Multi-TF -->
-        <div class="adv-filter-row" id="adf-multitf" style="margin-top:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div style="font-size:12px; color:var(--text-main); font-weight:600;">📊 Confluência Multi-TF</div>
-                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">Sinal só dispara se M5 e M10 concordam</div>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="chk-multitf" onchange="STATE.settings.useMultiTF=this.checked;">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div id="multitf-status" style="margin-top:6px; font-size:11px; font-family:var(--font-mono); color:var(--text-dim);">—</div>
-        </div>
-
-        <!-- Volatilidade ATR -->
-        <div class="adv-filter-row" id="adf-volatility" style="margin-top:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div style="font-size:12px; color:var(--text-main); font-weight:600;">⚡ Filtro de Volatilidade</div>
-                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">Bloqueia ATR acima do normal</div>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="chk-volatility" onchange="STATE.settings.useVolatility=this.checked;">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
-                <span style="font-size:11px; color:var(--text-dim);">Limite ATR:</span>
-                <input type="range" min="1" max="3" step="0.1" value="1.5" id="cfg-atr-mult"
-                    style="flex:1; accent-color:var(--blue);"
-                    oninput="STATE.settings.atrMultiplier=+this.value; document.getElementById('val-atr-mult').textContent=this.value+'×'">
-                <b id="val-atr-mult" style="font-size:11px; color:var(--text-main); min-width:28px;">1.5×</b>
-            </div>
-            <div id="volatility-status" style="margin-top:4px; font-size:11px; font-family:var(--font-mono); color:var(--text-dim);">—</div>
-        </div>
-
-        <!-- Backtesting -->
-        <div class="adv-filter-row" id="adf-backtest" style="margin-top:8px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div style="font-size:12px; color:var(--text-main); font-weight:600;">📈 Backtesting Acumulado</div>
-                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">Taxa de acerto por par/TF — bloqueia abaixo de 50%</div>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="chk-backtest" onchange="STATE.settings.useBacktest=this.checked;">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <div id="backtest-status" style="margin-top:6px; font-size:11px; font-family:var(--font-mono); color:var(--text-dim); line-height:1.7;">—</div>
-        </div>
-    </div>
-
-    <!-- 7. PARES MONITORADOS -->
-    <div class="config-block">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <div class="block-label" style="margin-bottom:0">Pares Monitorados</div>
-            <div style="display:flex; gap:10px;">
-                <span style="font-size:11px; color:var(--blue); cursor:pointer;" onclick="bulkAssets(true)">Todos</span>
-                <span style="font-size:11px; color:var(--text-dim); cursor:pointer;" onclick="bulkAssets(false)">Nenhum</span>
-            </div>
-        </div>
-        <div id="asset-groups"></div>
-    </div>
-
-    <!-- 7. STOCHASTIC RSI -->
-    <div class="config-block">
-        <div class="block-label">
-            Stochastic RSI
-            <span id="ind-lock-msg" style="color:var(--yellow); font-size:12px; display:none; margin-left:4px;">[BLOQUEADO]</span>
-        </div>
-        <div class="slider-row">
-            <div class="slider-header"><span>Período RSI:</span> <b id="val-rsi-p">14</b></div>
-            <input type="range" class="ind-slider" id="cfg-rsi-p" min="2" max="30" value="14" oninput="syncVal(this,'val-rsi-p'); STATE.params.rsiPeriod=+this.value; STATE.params.stochRsiPeriod=+this.value;">
-        </div>
-        <div class="slider-row">
-            <div class="slider-header"><span>Período Stoch K:</span> <b id="val-stoch-k">14</b></div>
-            <input type="range" class="ind-slider" id="cfg-stoch-k" min="5" max="30" value="14" oninput="syncVal(this,'val-stoch-k')">
-        </div>
-        <div class="slider-row">
-            <div class="slider-header"><span>Sobrecompra:</span> <b id="val-rsi-up">80</b></div>
-            <input type="range" class="ind-slider" id="cfg-rsi-up" min="60" max="100" value="80" oninput="syncVal(this,'val-rsi-up'); STATE.params.stochUp=+this.value;">
-        </div>
-        <div class="slider-row">
-            <div class="slider-header"><span>Sobrevenda:</span> <b id="val-rsi-dw">20</b></div>
-            <input type="range" class="ind-slider" id="cfg-rsi-dw" min="0" max="40" value="20" oninput="syncVal(this,'val-rsi-dw'); STATE.params.stochDw=+this.value;">
-        </div>
-        <div id="stoch-status" style="margin-top:8px; font-size:13px; color:var(--text-dim); font-family:var(--font-mono);">—</div>
-    </div>
-
-    <!-- 8. MACD -->
-    <div class="config-block">
-        <div class="block-label">MACD</div>
-        <div class="slider-row">
-            <div class="slider-header"><span>EMA Rápida:</span> <b id="val-macd-f">12</b></div>
-            <input type="range" class="ind-slider" id="cfg-macd-f" min="5" max="30" value="12" oninput="syncVal(this,'val-macd-f')">
-        </div>
-        <div class="slider-row">
-            <div class="slider-header"><span>EMA Lenta:</span> <b id="val-macd-s">26</b></div>
-            <input type="range" class="ind-slider" id="cfg-macd-s" min="10" max="50" value="26" oninput="syncVal(this,'val-macd-s')">
-        </div>
-        <div class="slider-row">
-            <div class="slider-header"><span>Sinal:</span> <b id="val-macd-sig">9</b></div>
-            <input type="range" class="ind-slider" id="cfg-macd-sig" min="2" max="20" value="9" oninput="syncVal(this,'val-macd-sig')">
-        </div>
-        <div id="macd-status" style="margin-top:8px; font-size:13px; color:var(--text-dim); font-family:var(--font-mono);">—</div>
-    </div>
-
-    <!-- 9. MÉDIA MÓVEL 200 -->
-    <div class="config-block">
-        <div class="block-label">Média Móvel 200</div>
-        <div style="margin-top:8px; font-size:13px; color:var(--text-dim); line-height:1.6;">
-            Filtra sinais contra a tendência macro.<br>
-            <span style="color:var(--green)">COMPRA</span> só acima da MM200<br>
-            <span style="color:var(--red)">VENDA</span> só abaixo da MM200
-        </div>
-        <div id="mm200-status" style="margin-top:10px; font-size:13px; font-family:var(--font-mono); color:var(--text-dim);">—</div>
-    </div>
-
-    <!-- 10. STATUS DO MERCADO -->
-    <div class="config-block">
-        <div class="block-label">Status do Mercado</div>
-        <div id="market-status-grid" style="margin-top:8px; display:flex; flex-direction:column; gap:4px;">
-            <!-- preenchido por updateMarketStatusPanel() -->
-        </div>
-    </div>
-
-</aside>
-
-<!-- ── MAIN ── -->
-<main id="main">
-    <div class="section-header">
-        <h3>📊 Sinais &nbsp;<span id="stat-badges-tf"></span>&nbsp;<span id="stat-badges-vela"></span></h3>
-        <div style="display:flex; gap:6px; margin-left:auto;">
-            <button id="tab-sinais" onclick="switchTab('sinais')" style="background:var(--blue); border:none; color:#fff; padding:4px 14px; border-radius:3px; font-family:var(--font-mono); font-size:12px; cursor:pointer; font-weight:600;">SINAIS</button>
-            <button id="tab-log" onclick="switchTab('log')" style="background:var(--bg-card); border:1px solid var(--border2); color:var(--text-mid); padding:4px 14px; border-radius:3px; font-family:var(--font-mono); font-size:12px; cursor:pointer;">LOG</button>
-            <button id="tab-perf" onclick="switchTab('perf')" style="background:var(--bg-card); border:1px solid var(--border2); color:var(--text-mid); padding:4px 14px; border-radius:3px; font-family:var(--font-mono); font-size:12px; cursor:pointer;">PERF</button>
-            <button onclick="exportLog()" style="background:var(--bg-card); border:1px solid var(--border2); color:var(--text-dim); padding:4px 10px; border-radius:3px; font-family:var(--font-mono); font-size:11px; cursor:pointer;" title="Exportar CSV">⬇ CSV</button>
-        </div>
-    </div>
-    <div class="stats-grid">
-        <div class="stat-card s-total"><span>Total</span><h2 id="st-total">0</h2></div>
-        <div class="stat-card s-buy"><span>Compra</span><h2 id="st-buy" style="color:var(--green)">0</h2></div>
-        <div class="stat-card s-sell"><span>Venda</span><h2 id="st-sell" style="color:var(--red)">0</h2></div>
-        <div class="stat-card s-conf"><span>Confirmados</span><h2 id="st-conf" style="color:var(--blue)">0</h2></div>
-        <div class="stat-card s-pend"><span>Pendentes</span><h2 id="st-pend" style="color:var(--yellow)">0</h2></div>
-        <div class="stat-card s-rate"><span>% Confirm.</span><h2 id="st-rate" style="color:var(--cyan)">0.0%</h2></div>
-    </div>
-
-    <!-- ABA SINAIS -->
-    <div id="panel-sinais" class="table-section">
-        <table>
-            <thead>
-                <tr>
-                    <th>Hora</th>
-                    <th>Par</th>
-                    <th>Sinal</th>
-                    <th>TF</th>
-                    <th>Vela</th>
-                    <th>P.Sinal</th>
-                    <th>P.Abertura</th>
-                    <th>Stoch RSI</th>
-                    <th>MACD</th>
-                    <th>MM200</th>
-                    <th>Status</th>
-                    <th>Fonte</th>
-                    <th>Resultado</th>
-                    <th>P.Resultado</th>
-                </tr>
-            </thead>
-            <tbody id="signal-rows"></tbody>
-        </table>
-    </div>
-
-    <!-- ABA LOG -->
-    <div id="panel-log" class="table-section" style="display:none;">
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border);">
-            <span style="font-size:12px; color:var(--text-dim);">Histórico completo da sessão — <span id="log-count">0</span> sinais</span>
-            <button onclick="clearLog()" style="background:transparent; border:1px solid var(--border2); color:var(--text-dim); padding:3px 10px; border-radius:3px; font-size:11px; cursor:pointer;">Limpar</button>
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Hora</th>
-                    <th>Par</th>
-                    <th>Sinal</th>
-                    <th>TF</th>
-                    <th>Entrada</th>
-                    <th>P.Sinal</th>
-                    <th>P.Abertura</th>
-                    <th>P.Resultado</th>
-                    <th>Resultado</th>
-                    <th>Variação</th>
-                    <th>Stoch RSI</th>
-                    <th>MACD</th>
-                    <th>MM200</th>
-                    <th>Fonte</th>
-                </tr>
-            </thead>
-            <tbody id="log-rows"></tbody>
-        </table>
-        <div id="log-empty" style="text-align:center; padding:40px; color:var(--text-dim); font-size:13px;">Nenhum sinal registrado ainda.</div>
-    </div>
-
-    <!-- ABA PERF -->
-    <div id="panel-perf" class="table-section" style="display:none; padding:16px;">
-        <div id="perf-content">
-            <div style="text-align:center; padding:40px; color:var(--text-dim); font-size:13px;">
-                Nenhum resultado registrado ainda.<br>Os dados aparecem conforme as operações são apuradas.
-            </div>
-        </div>
-    </div>
-</main>
+<div id="debug-terminal">&gt; Engine v10.45 pronta. Fonte: IQ Option WebSocket.</div>
 
 <script>
-// ============================================================
-//  OP245-C v10.15 — ENGINE CORE
-//  Melhorias implementadas:
-//  [1] Integração com API real (TwelveData WebSocket/REST)
-//  [2] MACD real calculado e usado como filtro de confirmação
-//  [3] Estado centralizado (não lê mais do DOM no loop)
-//  [4] lockedSignals com expiração FIFO (sem clear() total)
-//  [5] AudioContext reutilizável (sem memory leak)
-//  [6] IDs de linha com contador atômico (sem colisão)
-//  [7] Tratamento de erros em toda a cadeia assíncrona
-//  [8] Modo degradado gracioso (cai para simulação se API falhar)
-// ============================================================
-
-// ── 1. ESTADO CENTRAL ──────────────────────────────────────
 const STATE = {
-    assets: ["EUR/USD","GBP/USD","USD/JPY","USD/CHF","AUD/USD","USD/CAD","NZD/USD","EUR/GBP","EUR/JPY","GBP/JPY","AUD/JPY","EUR/AUD","GBP/AUD","XAUUSD","XAGUSD","BTC/USD","ETH/USD","SOL/USD","XRP/USD","WTICOUSD"],
-    selectedAssets: new Set(["EUR/USD","GBP/USD","USD/JPY","USD/CHF","AUD/USD","USD/CAD","NZD/USD","EUR/GBP","EUR/JPY","GBP/JPY","AUD/JPY","EUR/AUD","GBP/AUD","XAUUSD","XAGUSD","BTC/USD","ETH/USD","SOL/USD","XRP/USD","WTICOUSD"]),
-    selectedTFs: new Set(['M5','M10']), // M1 opcional — M15 nunca permitido
-    selectedVelas: new Set(['Atual','Próxima']),
-
-    // Parâmetros de indicadores — sincronizados apenas quando o usuário muda slider
-    params: {
-        rsiPeriod: 14, rsiUp: 80, rsiDw: 20,
-        macdFast: 12, macdSlow: 26, macdSignal: 9,
-        stochRsiPeriod: 14, stochKPeriod: 14, stochUp: 80, stochDw: 20,
-    },
-
-    settings: {
-        popup: true, confirmClose: false, confirmMode: 'none',
-        useMacd: true, useStoch: true, useMM200: true, ignoreOTC: true,
-        mm200MinDist: 0.1,   // distância mínima % para filtrar tendência MM200
-        useLiquidity: false, useNews: false, useMultiTF: false,
-        useVolatility: false, useBacktest: false, atrMultiplier: 1.5,
-        // v10.15 — threshold histograma MACD por categoria (CSV: MACD nao discrimina sozinho)
-        macdHistThreshold: { forex: 0.0003, commodity: 0.08, crypto: 8.0 },
-        // v10.15 — bloqueia M1 forex/commodity (EUR/USD M1=32%, XAUUSD M1=43% no CSV)
-        blockM1NonCrypto: true,
-        // v10.15 — bloqueia 01h BRT (31% WIN no CSV — mercado asiatico lateral)
-        blockAsiaDeadZone: true,
-        blockVelaAtualM5M10: false,  // bloqueia 'Vela Atual' em M5 e M10
-        // v10.15 — Stoch 0-5 foi 38.7% WIN; eleva zona minima para 5
-        stochMinZone: 5,
-        // v10.15 — Score mínimo para sinal disparar (0 = desativado)
-        scoreThreshold: 6,
-    },
-
-    // Telegram
-    telegram: { token: '8727416448:AAFEzWkfi0BUr1T0lX8cki8oK8C77qMiGFU', chatId: '-5198350830', active: false },
-
-    // Log de sinais da sessão
-    signalLog: [],
-    pendingResultsList: [],
-    backtestData: {},   // { 'EUR/USD_M5': { wins:0, losses:0 }, ... }
-    newsCache: [],      // cache de notícias econômicas
-    newsLastFetch: 0,   // timestamp último fetch
-    isPaused: false,
-    isMuted: false,
-    stats: { total:0, buy:0, sell:0, conf:0, pend:0 },
-
-    // API
-    apiKey: '',
-    apiMode: 'simulation', // 'live' | 'simulation'
-    apiLastUpdate: null,
-    wsConnections: new Map(),   // symbol -> WebSocket
-    fetchIntervals: new Map(),  // symbol -> intervalId
-
-    // Dados de preço — buffer fixo de 200 candles por ativo
-    marketData: {},
-
-    // Anti-spam: Map de signalKey -> timestamp (FIFO expirável)
-    lockedSignals: new Map(),
-    LOCK_TTL_MS: 600000, // 10 min máximo — limpa por vela fechada dinamicamente
-
-    // Contador atômico de linhas (evita colisão de IDs)
-    rowCounter: 0,
-
-    pendingSignalsList: [],
+    ws: null,
+    ssid: "",
+    pingInterval: null,
+    reconnectTimer: null,
+    signalCount: 0,
+    // IDs dos ativos — iguais na IQ Option e na Bullex
+    pairs: [
+        { symbol: 'EUR/USD',  id: 1    },
+        { symbol: 'GBP/USD',  id: 2    },
+        { symbol: 'EUR/JPY',  id: 4    },
+        { symbol: 'AUD/USD',  id: 99   },
+        { symbol: 'USD/JPY',  id: 6    },
+        { symbol: 'USD/CAD',  id: 7    },
+        { symbol: 'EUR/GBP',  id: 36   },
+        { symbol: 'GBP/JPY',  id: 14   },
+        { symbol: 'BTC/USD',  id: 1001 },
+        { symbol: 'XAU/USD',  id: 1002 }
+    ]
 };
 
-// Pre-popula marketData com OHLC simulado (base para indicadores iniciais)
-// Cada candle: { o, h, l, c, t } — open, high, low, close, timestamp
-STATE.assets.forEach(asset => {
-    STATE.marketData[asset] = [];
-    let base = asset.includes('BTC') ? 65000 :
-               asset.includes('ETH') ? 3200 :
-               asset.includes('XAU') ? 2300 :
-               asset.includes('SOL') ? 180 :
-               asset.includes('XRP') ? 0.6 : 1.10;
-    const dp = asset.includes('BTC') || asset.includes('ETH') ? 2 :
-               asset.includes('XAU') ? 2 : 5;
-    for (let i = 0; i < 150; i++) {
-        const o = parseFloat(base.toFixed(dp));
-        const move = base * (Math.random() * 0.003 - 0.0015);
-        const c = parseFloat((base + move).toFixed(dp));
-        const h = parseFloat((Math.max(o, c) * (1 + Math.random() * 0.001)).toFixed(dp));
-        const l = parseFloat((Math.min(o, c) * (1 - Math.random() * 0.001)).toFixed(dp));
-        const t = Date.now() - (150 - i) * 60000; // 1 candle por minuto atrás
-        STATE.marketData[asset].push({ o, h, l, c, t });
-        base = c;
-    }
-});
-
-// Helper: extrai array de fechamentos de um buffer OHLC
-function closes(hist) { return hist.map(c => c.c); }
-// Helper: último fechamento
-function lastClose(hist) { return hist[hist.length - 1].c; }
-
-// ── 2. MOTOR MATEMÁTICO ────────────────────────────────────
-
-/**
- * RSI com suavização Wilder (cálculo padrão real)
- */
-function calculateRSI(prices, period) {
-    if (prices.length < period + 1) return 50;
-    let gains = 0, losses = 0;
-    for (let i = prices.length - period; i < prices.length; i++) {
-        const diff = prices[i] - prices[i - 1];
-        if (diff >= 0) gains += diff; else losses -= diff;
-    }
-    let avgGain = gains / period;
-    let avgLoss = losses / period;
-    if (avgLoss === 0) return 100;
-    return parseFloat((100 - (100 / (1 + avgGain / avgLoss))).toFixed(1));
+function log(msg, color) {
+    const term = document.getElementById('debug-terminal');
+    const time = new Date().toLocaleTimeString('pt-BR');
+    const c = color || '#0f0';
+    term.innerHTML += `<br><span style="color:var(--text-dim)">[${time}]</span> <span style="color:${c}">${msg}</span>`;
+    term.scrollTop = term.scrollHeight;
 }
 
-/**
- * EMA (Média Móvel Exponencial)
- */
-function calculateEMA(prices, period) {
-    if (prices.length < period) return null;
-    const k = 2 / (period + 1);
-    let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
-    for (let i = period; i < prices.length; i++) {
-        ema = prices[i] * k + ema * (1 - k);
-    }
-    return ema;
-}
-
-/**
- * MACD real — retorna { macdLine, signalLine, histogram, trend }
- * trend: 'bullish' | 'bearish' | 'neutral'
- */
-function calculateMACD(prices, fastP, slowP, signalP) {
-    if (prices.length < slowP + signalP) return null;
-
-    // Calcula linha MACD para cada ponto a partir do slowP
-    const macdSeries = [];
-    for (let i = slowP - 1; i < prices.length; i++) {
-        const slice = prices.slice(0, i + 1);
-        const emaFast = calculateEMA(slice, fastP);
-        const emaSlow = calculateEMA(slice, slowP);
-        if (emaFast !== null && emaSlow !== null) {
-            macdSeries.push(emaFast - emaSlow);
-        }
-    }
-    if (macdSeries.length < signalP) return null;
-
-    // Linha de sinal = EMA do MACD
-    const signalLine = calculateEMA(macdSeries, signalP);
-    const macdLine   = macdSeries[macdSeries.length - 1];
-    const histogram  = macdLine - signalLine;
-    const prevHistogram = macdSeries.length > 1
-        ? macdSeries[macdSeries.length - 2] - calculateEMA(macdSeries.slice(0, -1), signalP)
-        : 0;
-
-    // trend baseado na POSIÇÃO do histograma (acima ou abaixo de zero)
-    // — não na aceleração, que bloqueava sinais legítimos de reversão
-    // crossover = mudança de lado neste tick (sinal mais forte)
-    const crossover = (histogram > 0 && prevHistogram <= 0) || (histogram < 0 && prevHistogram >= 0);
-    let trend = 'neutral';
-    if (histogram > 0) trend = 'bullish';
-    else if (histogram < 0) trend = 'bearish';
-
-    return {
-        macdLine:  parseFloat(macdLine.toFixed(6)),
-        signalLine: parseFloat(signalLine.toFixed(6)),
-        histogram: parseFloat(histogram.toFixed(6)),
-        prevHistogram: parseFloat(prevHistogram.toFixed(6)),
-        crossover, // true = cruzou a linha zero neste tick
-        trend,
-    };
-}
-
-// ── 2b. STOCHASTIC RSI ─────────────────────────────────────
-
-/**
- * Stochastic RSI — retorna valor K entre 0–100
- * Mais sensível que o RSI puro: detecta reversões mais cedo
- * Retorna { k, zone } onde zone: 'overbought' | 'oversold' | 'neutral'
- */
-function calculateStochRSI(prices, rsiPeriod, stochPeriod) {
-    // Precisa de rsiPeriod + stochPeriod + 1 candles no mínimo
-    const minLen = rsiPeriod + stochPeriod + 1;
-    if (prices.length < minLen) return null;
-
-    // Gera série de valores RSI para os últimos stochPeriod+1 pontos
-    const rsiSeries = [];
-    for (let i = prices.length - stochPeriod - 1; i < prices.length; i++) {
-        const slice = prices.slice(0, i + 1);
-        rsiSeries.push(calculateRSI(slice, rsiPeriod));
-    }
-    if (rsiSeries.length < stochPeriod) return null;
-
-    const rsiWindow = rsiSeries.slice(-stochPeriod);
-    const minRSI = Math.min(...rsiWindow);
-    const maxRSI = Math.max(...rsiWindow);
-    const currentRSI = rsiSeries[rsiSeries.length - 1];
-
-    if (maxRSI === minRSI) return { k: 50, zone: 'neutral', rsi: currentRSI };
-
-    const k = parseFloat(((currentRSI - minRSI) / (maxRSI - minRSI) * 100).toFixed(1));
-    const zone = k >= 80 ? 'overbought' : k <= 20 ? 'oversold' : 'neutral';
-
-    return { k, zone, rsi: currentRSI };
-}
-
-// ── 2c. MÉDIA MÓVEL 200 ────────────────────────────────────
-
-/**
- * Média Móvel Simples de 200 períodos (SMA200 / MM200)
- * Retorna { value, trend, distance }
- * trend: 'above' (alta) | 'below' (baixa) | 'near' (dentro de 0.1%)
- */
-function calculateMM200(prices) {
-    const period = 200;
-    if (prices.length < period) {
-        // Se não tiver 200 candles ainda, usa o que tiver (mínimo 50)
-        if (prices.length < 50) return null;
-        const available = prices.slice(-prices.length);
-        const mm = available.reduce((a, b) => a + b, 0) / available.length;
-        const last = prices[prices.length - 1];
-        const dist = ((last - mm) / mm * 100);
-        return {
-            value: parseFloat(mm.toFixed(5)),
-            trend: Math.abs(dist) < 0.1 ? 'near' : dist > 0 ? 'above' : 'below',
-            distance: parseFloat(dist.toFixed(3)),
-            partial: true, // indica que ainda está construindo o histórico
-        };
-    }
-    const mm200 = prices.slice(-period).reduce((a, b) => a + b, 0) / period;
-    const last = prices[prices.length - 1];
-    const dist = ((last - mm200) / mm200 * 100);
-    return {
-        value: parseFloat(mm200.toFixed(5)),
-        trend: Math.abs(dist) < 0.1 ? 'near' : dist > 0 ? 'above' : 'below',
-        distance: parseFloat(dist.toFixed(3)),
-        partial: false,
-    };
-}
-
-
-
-// Mapa de símbolos OP245 → TwelveData
-const SYMBOL_MAP = {
-    // Forex Majors
-    "EUR/USD":"EUR/USD", "GBP/USD":"GBP/USD", "USD/JPY":"USD/JPY",
-    "USD/CHF":"USD/CHF", "AUD/USD":"AUD/USD", "USD/CAD":"USD/CAD",
-    "NZD/USD":"NZD/USD",
-    // Crosses
-    "EUR/GBP":"EUR/GBP", "EUR/JPY":"EUR/JPY", "GBP/JPY":"GBP/JPY",
-    "AUD/JPY":"AUD/JPY", "EUR/AUD":"EUR/AUD", "GBP/AUD":"GBP/AUD",
-    // Commodities — símbolos corretos TwelveData
-    "XAUUSD":"XAU/USD", "XAGUSD":"XAG/USD",
-    "WTICOUSD":"WTI/USD",   // TwelveData aceita WTI/USD
-    // Crypto
-    "BTC/USD":"BTC/USD", "ETH/USD":"ETH/USD", "SOL/USD":"SOL/USD",
-    "XRP/USD":"XRP/USD",
-};
-
-// ── CHAVE PADRÃO (ofuscada por XOR simples) ───────────────
-// Não é criptografia forte — apenas evita exposição direta no código-fonte.
-// Objetivo: uso pessoal, não distribuição pública.
-const _AK_SEED = 0x4F;
-const _AK_ENC = [45,126,118,120,120,119,119,44,126,126,43,122,123,46,123,46,45,118,41,42,122,126,118,46,127,123,121,41,120,121,118,124];
-function _decodeKey() {
-    return _AK_ENC.map(b => String.fromCharCode(b ^ _AK_SEED)).join('');
-}
-
-function toggleApiKeyField() {
-    const wrap = document.getElementById('apikey-override-wrap');
-    wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
-}
-
-function onApiKeyChange() {
-    const key = document.getElementById('cfg-apikey').value.trim();
-    if (key.length > 10) {
-        STATE.apiKey = key;
-        try { localStorage.setItem('op245_apikey', key); } catch(e) {}
-        setApiStatus('connecting', 'Conectando com nova chave...');
-        disconnectAllWS();
-        setTimeout(() => connectRealData(), 500);
-    }
-}
-
-function notifyApiLimit() {
-    // Mostra aviso de limite e abre campo para nova chave
-    document.getElementById('apikey-limit-msg').style.display = 'block';
-    document.getElementById('apikey-override-wrap').style.display = 'block';
-    document.getElementById('apikey-status-dot').style.cssText = 'width:8px;height:8px;border-radius:50%;background:var(--yellow);box-shadow:0 0 6px var(--yellow);flex-shrink:0;';
-    document.getElementById('apikey-status-label').textContent = 'Limite atingido';
-    document.getElementById('apikey-status-label').style.color = 'var(--yellow)';
-    setApiStatus('error', 'Limite da API atingido — insira outra chave no painel');
-    showErrorToast('Limite da API TwelveData atingido');
-    STATE.apiMode = 'simulation';
-    startSimulationEngine();
-}
-
-async function connectRealData() {
-    if (!STATE.apiKey) return;
-
-    try {
-        const symbol = SYMBOL_MAP["EUR/USD"];
-        const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1min&outputsize=100&apikey=${STATE.apiKey}`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        // Detecta limite de requisições
-        if (data.code === 429 || (data.message && data.message.toLowerCase().includes('limit'))) {
-            notifyApiLimit();
-            return;
-        }
-
-        if (data.status === 'error' || data.code) {
-            throw new Error(data.message || 'Chave inválida ou erro na API');
-        }
-
-        await populateHistoricalData();
-        connectWebSocket();
-        STATE.apiMode = 'live';
-        setApiStatus('live', `API TwelveData conectada — ${STATE.selectedAssets.size} ativos`);
-
-    } catch (err) {
-        console.warn('[API] Falha na conexão:', err.message);
-        // Verifica se é erro de limite mesmo dentro do catch
-        if (err.message && err.message.toLowerCase().includes('limit')) {
-            notifyApiLimit();
-            return;
-        }
-        STATE.apiMode = 'simulation';
-        setApiStatus('error', `Erro API: ${err.message} — usando simulação`);
-        showErrorToast(`API: ${err.message}`);
-    }
-}
-
-async function populateHistoricalData(assets) {
-    // v10.15: carrega histórico para TODOS os ativos selecionados
-    // Era slice(0,3) — só 3 primeiros recebiam buffer completo para BB/ATR/Stoch
-    // Sem histórico, os filtros bloqueavam por falta de dados (não por regra do motor)
-    const toLoad = assets ? Array.from(assets) : Array.from(STATE.selectedAssets);
-    const total  = toLoad.length;
-    console.log(`[API] Carregando histórico para ${total} ativos...`);
-
-    for (let i = 0; i < toLoad.length; i++) {
-        const asset = toLoad[i];
-        try {
-            const symbol = SYMBOL_MAP[asset] || asset;
-            const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=5min&outputsize=500&apikey=${STATE.apiKey}`;
-            const res  = await fetch(url);
-            const data = await res.json();
-            if (data.values && Array.isArray(data.values)) {
-                const candles = data.values.reverse().map(c => ({
-                    o: parseFloat(c.open),
-                    h: parseFloat(c.high),
-                    l: parseFloat(c.low),
-                    c: parseFloat(c.close),
-                    t: new Date(c.datetime).getTime(),
-                }));
-                STATE.marketData[asset] = candles;
-                console.log(`[API] ${i+1}/${total} OHLC ${asset}: ${candles.length} velas`);
-            }
-        } catch (e) {
-            console.warn(`[API] Falha ao buscar histórico de ${asset}:`, e.message);
-        }
-        // 8000ms entre requests — respeita limite de 8 créditos/minuto do plano Basic
-        // 20 pares × 8s = ~160s de boot (~2.7min) mas sem burst de rate limit
-        // Progresso exibido no status bar durante o carregamento
-        const loadPct = Math.round(((i+1)/total)*100);
-        setApiStatus('connecting', `Carregando histórico... ${i+1}/${total} (${loadPct}%)`);
-        if (i < toLoad.length - 1) await new Promise(r => setTimeout(r, 8000));
-    }
-    console.log(`[API] Histórico completo para ${total} ativos.`);
-}
-
-// ── EXPONENTIAL BACKOFF ────────────────────────────────────
-// Tenta: 2s → 4s → 8s → 16s → 32s → 64s → ... → 10 tentativas → simulação
-const WS_BACKOFF = {
-    attempt:  0,
-    maxTries: 10,
-    baseMs:   2000,
-    timer:    null,
-
-    reset() {
-        this.attempt = 0;
-        if (this.timer) { clearTimeout(this.timer); this.timer = null; }
-    },
-
-    next(onRetry) {
-        if (this.attempt >= this.maxTries) {
-            console.warn('[WS] 10 tentativas falharam — ativando simulação');
-            setApiStatus('error', 'WS indisponível após 10 tentativas — modo simulação');
-            showErrorToast('WebSocket indisponível — simulação ativada como fallback');
-            STATE.apiMode = 'simulation';
-            startSimulationEngine();
-            this.reset();
-            return;
-        }
-
-        // delay = base * 2^attempt + jitter (±20%), cap em 60s
-        const exp    = Math.min(this.baseMs * Math.pow(2, this.attempt), 60000);
-        const jitter = exp * (Math.random() * 0.4 - 0.2);
-        const delay  = Math.round(exp + jitter);
-        this.attempt++;
-
-        const sec = (delay / 1000).toFixed(1);
-        console.log(`[WS] Tentativa ${this.attempt}/${this.maxTries} em ${sec}s`);
-        setApiStatus('connecting', `WS reconectando… tentativa ${this.attempt}/${this.maxTries} em ${sec}s`);
-
-        this.timer = setTimeout(onRetry, delay);
-    },
-};
-
-function connectWebSocket() {
-    if (!STATE.apiKey) return;
-    disconnectAllWS();
-
-    const ws = new WebSocket(`wss://ws.twelvedata.com/v1/quotes/price?apikey=${STATE.apiKey}`);
-
-    ws.onopen = () => {
-        console.log('[WS] Conectado à TwelveData');
-        WS_BACKOFF.reset(); // conexão bem-sucedida — reseta o contador
-        setApiStatus('live', `API TwelveData conectada — ${STATE.selectedAssets.size} ativos`);
-        const symbols = Array.from(STATE.selectedAssets)
-            .map(a => SYMBOL_MAP[a] || a)
-            .filter(Boolean);
-        ws.send(JSON.stringify({ action: 'subscribe', params: { symbols: symbols.join(',') } }));
-    };
-
-    ws.onmessage = (evt) => {
-        try {
-            const msg = JSON.parse(evt.data);
-            if (msg.event === 'error' && msg.message && msg.message.toLowerCase().includes('limit')) {
-                notifyApiLimit();
-                return;
-            }
-            if (msg.event === 'price' && msg.symbol && msg.price) {
-                const internalKey = Object.keys(SYMBOL_MAP).find(k => SYMBOL_MAP[k] === msg.symbol) || msg.symbol;
-                if (STATE.marketData[internalKey] !== undefined) {
-                    const price = parseFloat(msg.price);
-                    buildOHLCCandle(STATE.marketData[internalKey], price, 1);
-                    STATE.apiLastUpdate = new Date();
-                    updateApiTimestamp();
-                    if (STATE.selectedAssets.has(internalKey)) {
-                        processTick(internalKey, price, 'real');
-                    }
-                }
-            }
-        } catch (e) { /* ignora frames malformados */ }
-    };
-
-    ws.onerror = (e) => {
-        console.warn('[WS] Erro:', e);
-        // onclose sempre dispara após onerror — a reconexão fica só no onclose
-    };
-
-    ws.onclose = (evt) => {
-        if (STATE.apiMode !== 'live') return; // desconexão intencional — não reconecta
-        // Código 1008 = policy violation (ban/limite) — não tenta reconectar
-        if (evt.code === 1008) {
-            notifyApiLimit();
-            return;
-        }
-        WS_BACKOFF.next(connectWebSocket);
-    };
-
-    STATE.wsConnections.set('main', ws);
-}
-
-function disconnectAllWS() {
-    STATE.wsConnections.forEach(ws => {
-        try { ws.close(); } catch(e) {}
-    });
-    STATE.wsConnections.clear();
-    STATE.fetchIntervals.forEach(id => clearInterval(id));
-    STATE.fetchIntervals.clear();
-}
-
-// ── 4. ENGINE DE TICK (simulação + real compartilham) ──────
-
-// Tick de simulação — roda somente no modo sim
-let simInterval = null;
-
-function startSimulationEngine() {
-    if (simInterval) clearInterval(simInterval);
-    simInterval = setInterval(() => {
-        if (STATE.isPaused || STATE.apiMode === 'live') return;
-        if (STATE.selectedAssets.size === 0 || STATE.selectedTFs.size === 0) return;
-
-        STATE.selectedAssets.forEach(pair => {
-            const hist = STATE.marketData[pair];
-            if (!hist || hist.length === 0) return;
-            const last     = lastClose(hist);
-            const move     = last * (Math.random() * 0.003 - 0.0015);
-            const newPrice = parseFloat((last + move).toFixed(last > 100 ? 2 : 5));
-
-            buildOHLCCandle(hist, newPrice, 1); // agrega em candle M1
-            processTick(pair, newPrice, 'sim');
-        });
-    }, 2000);
-}
-
-// ── DETECÇÃO OTC ───────────────────────────────────────────
-const CRYPTO_PAIRS = new Set(['BTC/USD','ETH/USD','SOL/USD','XRP/USD']);
-const COMMODITY_PAIRS = new Set(['XAUUSD','XAGUSD','WTICOUSD']);
-
-const OTC_CLOSE_HOUR = {
-    'EUR/USD':18,'GBP/USD':18,'USD/JPY':18,'USD/CHF':18,'AUD/USD':18,
-    'USD/CAD':18,'NZD/USD':18,'EUR/GBP':18,'EUR/JPY':18,'GBP/JPY':18,
-    'AUD/JPY':18,'EUR/AUD':18,'GBP/AUD':18,
-    'XAUUSD':17,'XAGUSD':17,'WTICOUSD':17,
-};
-
-function getBRTTime() {
-    const now = new Date();
-    const brtOffset = -3 * 60;
-    return new Date(now.getTime() + (now.getTimezoneOffset() + brtOffset) * 60000);
-}
-
-function isMarketOTC(pair) {
-    if (CRYPTO_PAIRS.has(pair)) return false;
-    const closeHour = OTC_CLOSE_HOUR[pair];
-    if (closeHour === undefined) return false;
-
-    const brt = getBRTTime();
-    const day        = brt.getDay();
-    const timeInMin  = brt.getHours() * 60 + brt.getMinutes();
-    const closeInMin = closeHour * 60;
-
-    if (day === 5 && timeInMin >= closeInMin) return true;
-    if (day === 6) return true;
-    if (day === 0 && timeInMin < 22 * 60) return true;
-
-    return false;
-}
-
-function updateMarketStatusPanel() {
-    const grid = document.getElementById('market-status-grid');
-    if (!grid) return;
-
-    const allPairs = [
-        'EUR/USD','GBP/USD','USD/JPY','USD/CHF','AUD/USD','USD/CAD','NZD/USD',
-        'EUR/GBP','EUR/JPY','GBP/JPY','AUD/JPY','EUR/AUD','GBP/AUD',
-        'XAUUSD','XAGUSD','WTICOUSD',
-        'BTC/USD','ETH/USD','SOL/USD','XRP/USD',
-    ];
-
-    grid.innerHTML = allPairs.map(pair => {
-        const isCrypto    = CRYPTO_PAIRS.has(pair);
-        const isCommodity = COMMODITY_PAIRS.has(pair);
-        const type        = isCrypto ? 'Cripto' : isCommodity ? 'Commodity' : 'Forex';
-        const otc         = isMarketOTC(pair);
-        const dotColor    = (isCrypto || !otc) ? 'var(--green)' : 'var(--red)';
-        const label       = isCrypto ? '24/7' : otc ? 'OTC' : 'Aberto';
-        const typeColor   = isCrypto ? 'var(--cyan)' : isCommodity ? 'var(--yellow)' : 'var(--text-dim)';
-        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;">
-            <div style="display:flex;align-items:center;gap:6px;">
-                <span style="width:7px;height:7px;border-radius:50%;background:${dotColor};box-shadow:0 0 5px ${dotColor};flex-shrink:0;display:inline-block;"></span>
-                <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-main);">${pair}</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;">
-                <span style="font-size:10px;color:${typeColor};">${type}</span>
-                <span style="font-size:11px;font-weight:700;color:${dotColor};min-width:42px;text-align:right;">${label}</span>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-
-function updateOTCStatusBar() {
-    const bar = document.getElementById('otc-status-bar');
-    const txt = document.getElementById('otc-status-text');
-    if (!bar || !txt) return;
-
-    const otcNow = Object.keys(OTC_CLOSE_HOUR).filter(p => isMarketOTC(p));
-
-    if (otcNow.length > 0 && STATE.settings.ignoreOTC) {
-        bar.style.display = 'block';
-        const titulo = bar.querySelector('div:first-child');
-        if (titulo) titulo.textContent = '⚠ MERCADO OTC ATIVO';
-        const lista = otcNow.map(p => {
-            const fechaH = OTC_CLOSE_HOUR[p];
-            return `<span style="color:var(--yellow)">${p}</span> <span style="color:var(--text-dim)">(fecha Sex ${fechaH}h BRT)</span>`;
-        }).join('<br>');
-        txt.innerHTML = `${lista}<br><span style="color:var(--text-dim);margin-top:4px;display:block;">↩ Reabre Dom 22h BRT</span>`;
-    } else if (otcNow.length > 0 && !STATE.settings.ignoreOTC) {
-        bar.style.display = 'block';
-        const titulo = bar.querySelector('div:first-child');
-        if (titulo) titulo.textContent = '⚠ PARES EM OTC (filtro desativado)';
-        txt.innerHTML = `<span style="color:var(--text-dim)">Ative "Ignorar OTC" para bloquear sinais desses pares.</span>`;
-    } else {
-        bar.style.display = 'none';
-    }
-}
-
-
-function processTick(pair, price, source) {
-    if (STATE.isPaused) return;
-    // ── FILTRO OTC — ignora pares em horário OTC se opção ativa ──
-    if (STATE.settings.ignoreOTC && isMarketOTC(pair)) return;
-    const s = STATE.settings;
-    const hist = STATE.marketData[pair];
-    if (!hist || hist.length < 10) return;
-
-    const tfs = Array.from(STATE.selectedTFs).filter(tf => tf !== 'M15'); // M15 bloqueado
-    if (tfs.length === 0) return;
-
-    // Quando todos os TFs estão selecionados ou múltiplos, avalia cada um com seu preset
-    // Quando só um TF, usa os parâmetros atuais do STATE (que o usuário pode ter ajustado)
-    const useIndividualPresets = tfs.length > 1;
-
-    tfs.forEach(tf => {
-        // Define parâmetros: preset individual por TF (se múltiplos) ou STATE atual (se único)
-        let p;
-        if (useIndividualPresets) {
-            const pr = TF_PRESETS[tf] || TF_PRESETS['M5'];
-            p = {
-                rsiPeriod:      pr[0], rsiUp: pr[1], rsiDw: pr[2],
-                macdFast:       pr[3], macdSlow: pr[4], macdSignal: pr[5],
-                stochRsiPeriod: pr[6], stochKPeriod: pr[7],
-                stochUp:        pr[8], stochDw: pr[9],
-            };
-        } else {
-            p = STATE.params; // usa configuração atual do usuário
-        }
-
-        if (hist.length < p.rsiPeriod + 1) return;
-
-        // Extrai fechamentos para indicadores (sobre velas OHLC)
-        const cls   = closes(hist);
-
-        // Calcula indicadores com parâmetros do TF
-        const stoch = calculateStochRSI(cls, p.stochRsiPeriod, p.stochKPeriod);
-        const macd  = calculateMACD(cls, p.macdFast, p.macdSlow, p.macdSignal);
-        const mm200 = calculateMM200(cls);
-
-        // Atualiza sidebar só para o ativo e TF principal
-        if (pair === Array.from(STATE.selectedAssets)[0] && tf === tfs[0]) {
-            if (macd)  updateMacdDisplay(macd);
-            if (stoch) updateStochDisplay(pair, stoch);
-            if (mm200) updateMM200Display(pair, mm200, price);
-        }
-
-        // Gatilho: Stochastic RSI
-        let signalType = null;
-        if (stoch) {
-            if (stoch.k >= p.stochUp) signalType = 'VENDA';
-            else if (stoch.k <= p.stochDw) signalType = 'COMPRA';
-        } else {
-            const rsi = calculateRSI(cls, p.rsiPeriod);
-            if (rsi >= p.rsiUp) signalType = 'VENDA';
-            else if (rsi <= p.rsiDw) signalType = 'COMPRA';
-        }
-        if (!signalType) return;
-
-        // ── FILTRO MM200 (removido — ineficaz em M5) ──────────
-        // MM200 calculado sobre velas M5 representa apenas ~16h — não é tendência macro.
-        // Zona NEAR aparecia em 40% dos sinais, inutilizando o filtro.
-        // Removido em v10.15. MACD cobre a direção de momentum.
-
-        // ── FILTRO DE MOMENTUM: Stoch extremo + MACD virando ──
-        // Insight do analista: o motor opera reversões cedo demais.
-        // Solução: exige que o MACD confirme que a virada JÁ COMEÇOU.
-        // Aceita sinal quando:
-        //   (a) MACD alinhado com o sinal (bullish para COMPRA, bearish para VENDA)
-        //   (b) MACD cruzando agora (crossover = reversão iniciando)
-        //   (c) MACD neutro (sem tendência definida)
-        // Bloqueia quando MACD consolidado na direção OPOSTA sem sinal de virada.
-        // Adicionalmente: exige histogram virando — histograma deve estar
-        // se movendo na direção do sinal (momentum crescente, não apenas extremo).
-        if (s.useMacd && macd) {
-            // Bloqueia se MACD oposto e sem crossover
-            const opposite = (signalType === 'COMPRA' && macd.trend === 'bearish' && !macd.crossover) ||
-                             (signalType === 'VENDA'  && macd.trend === 'bullish' && !macd.crossover);
-            if (opposite) return;
-
-            // Filtro de momentum: histograma deve confirmar a direção
-            // Se o histograma existe e está indo contra o sinal com força, bloqueia
-            // (histograma muito negativo para COMPRA = ainda caindo com força)
-            if (macd.histogram !== undefined) {
-                // v10.15 — threshold por categoria (forex/commodity/crypto têm escalas diferentes)
-                const thr = s.macdHistThreshold || {};
-                const histThreshold = CRYPTO_PAIRS.has(pair)    ? (thr.crypto    ?? 8.0)
-                                    : COMMODITY_PAIRS.has(pair)  ? (thr.commodity ?? 0.08)
-                                    : (thr.forex ?? 0.0003);
-                const histStrong = Math.abs(macd.histogram) > histThreshold;
-                if (histStrong) {
-                    if (signalType === 'COMPRA' && macd.histogram < 0 && !macd.crossover) return;
-                    if (signalType === 'VENDA'  && macd.histogram > 0 && !macd.crossover) return;
-                }
-            }
-        }
-
-        // ── FILTROS AVANÇADOS ──────────────────────────────
-
-        // XAUUSD expansão — sempre bloqueado (dado: 31.3% WIN em expansão)
-        if (isXauExpansionBlocked(pair)) return;
-
-        // ── FILTRO MM200 TENDÊNCIA (v10.15) ─────────────────
-        // Toggle: useMM200. Distância mínima configurável: mm200MinDist (%)
-        // 0% = bloqueia qualquer desvio | 0.1% padrão | 5% = só tendências muito fortes
-        if (STATE.settings.useMM200 && mm200) {
-            const minDist = STATE.settings.mm200MinDist ?? 0.1;
-            const aboveMM = mm200.trend === 'above' && mm200.distance > minDist;
-            const belowMM = mm200.trend === 'below' && Math.abs(mm200.distance) > minDist;
-            if (signalType === 'VENDA' && aboveMM) return;
-            if (signalType === 'COMPRA' && belowMM) return;
-        }
-
-        // F1: Horário de liquidez
-        if (s.useLiquidity && !isLiquidityWindow()) return;
-
-        // F2: Notícias econômicas
-        if (isNewsBlocked(pair)) return;
-
-        // F3: Confluência Multi-TF — M10 tendência, M5 gatilho
-        registerMultiTFDirection(pair, tf, signalType);
-        if (!checkMultiTFConfluence(pair, signalType, tf)) return;
-
-        // F4: Volatilidade ATR
-        if (isVolatilityBlocked(pair)) return;
-        updateVolatilityStatus(pair);
-
-        // F5: Backtesting — bloqueia par+TF com taxa < 50%
-        if (isBacktestBlocked(pair, tf)) return;
-
-        const stochVal = stoch ? stoch.k : calculateRSI(cls, p.rsiPeriod);
-
-        // ── FILTRO ANTI-SATURAÇÃO + ZONA MÍNIMA (v10.15) ──────
-        // Stoch = 0|100: saturação — não confiável
-        // Stoch 0-5 no CSV = 38.7% WIN (pior que aleatório) → eleva mínimo para 5
-        if (stochVal === 0 || stochVal === 100) return;
-        const minZ = s.stochMinZone ?? 5;
-        if (signalType === 'COMPRA' && stochVal < minZ) return;
-        if (signalType === 'VENDA'  && stochVal > (100 - minZ)) return;
-
-        // ── FILTRO M1 NÃO-CRIPTO (v10.15, revisado v10.15) ──────
-        // CSV noturno: EUR/USD M1=32% → ruído à noite
-        // Londres 08h-17h BRT: EUR/USD M1 liberado — dinâmica diferente
-        // Outros forex/commodity: sempre bloqueados em M1
-        if (s.blockM1NonCrypto && tf === 'M1') {
-            if (!CRYPTO_PAIRS.has(pair)) {
-                if (pair === 'EUR/USD') {
-                    const brtH = getBRTTime().getHours();
-                    if (brtH < 8 || brtH >= 17) return;
-                } else {
-                    return;
-                }
-            }
-        }
-
-        // ── FILTRO ZONA MORTA ASIÁTICA (v10.15) ─────────────
-        // CSV 11/03: 01h=31% WIN
-        // CSV 12/03: 04h=33% WIN · 05h=0% WIN — sessão asiática inteira ruim
-        // Bloqueia 01:00-06:59 BRT
-        if (s.blockAsiaDeadZone) {
-            const brt = getBRTTime();
-            const h = brt.getHours();
-            if (h >= 1 && h < 7) return;
-        }
-
-        // ── SCORE ENGINE (v10.15) ─────────────────────────────
-        // Cada condição confirmada adiciona pontos.
-        // Sinal só dispara se score >= threshold (padrão 6).
-        // Calibrado nos dados reais: padrões ≥65% WIN têm pelo menos 2 condições fortes.
-        //
-        // Pesos baseados nos dados do CSV:
-        //   Stoch extremo (≤10/≥90)          +2   base de qualquer sinal
-        //   Stoch muito extremo (≤5/≥95)      +1   adicional — 53% vs 51% no CSV
-        //   MACD crossover (virada real)       +3   maior discriminador individual
-        //   MACD alinhado (sem crossover)      +1   confirma direção mas não garante
-        //   MACD contra + Stoch ≥95 XAUUSD    +2   padrão ouro: 73% WIN no CSV
-        //   Multi-TF alinhado                  +2   quando ativo
-        //   Volatilidade adequada (ATR ok)     +1   não bloqueado pelo filtro
-        //   BTC/USD                            +1   melhor ativo (55.5% geral)
-        //   Bollinger Bands toque              +2   confirmação universal — abre majors/crosses
-        //   EUR/USD PENALIDADE                 --   removida v10.15 (neutro)
-        //   Threshold: Crypto=baseThreshold, outros=baseThreshold-1 (mín 2)
-
-        let score = 0;
-        const scoreLog = [];
-
-        // Stoch extremo base
-        // EUR/USD: exige zona mais rigorosa ≤5/≥95 — Stoch 6.9 gerou LOSS (v10.15 dados reais)
-        // Outros pares: zona padrão ≤10/≥90
-        const stochMinZone = (pair === 'EUR/USD') ? 5 : 10;
-        const stochMaxZone = (pair === 'EUR/USD') ? 95 : 90;
-        const stochExtreme     = (signalType==='COMPRA' && stochVal<=stochMinZone) || (signalType==='VENDA' && stochVal>=stochMaxZone);
-        const stochVeryExtreme = (signalType==='COMPRA' && stochVal<=5)  || (signalType==='VENDA' && stochVal>=95);
-        if (stochExtreme)     { score += 2; scoreLog.push(`Stoch≥${stochMaxZone}+2`); }
-        if (stochVeryExtreme) { score += 1; scoreLog.push('Stoch≥95+1'); }
-
-        // MACD
-        if (macd) {
-            if (macd.crossover) {
-                score += 3; scoreLog.push('MACD_cross+3');
-            } else {
-                const macdAligned = (signalType==='COMPRA' && macd.trend==='bullish') ||
-                                    (signalType==='VENDA'  && macd.trend==='bearish');
-                if (macdAligned) { score += 1; scoreLog.push('MACD_alin+1'); }
-            }
-
-            // Padrão especial XAUUSD: VENDA com MACD↑ = 73% WIN no CSV
-            // COMPRA com MACD↓ = 67% WIN — o ouro se reverte contra o momentum
-            const xauPattern = pair === 'XAUUSD' && stochVeryExtreme && (
-                (signalType==='VENDA'  && macd.trend==='bullish') ||
-                (signalType==='COMPRA' && macd.trend==='bearish')
-            );
-            if (xauPattern) { score += 2; scoreLog.push('XAU_pat+2'); }
-        }
-
-        // Multi-TF alinhado — usa o TF maior disponível como referência
-        // Se M10 selecionado: usa M10. Se não, usa M5. Assim EUR/USD funciona com M5+M1.
-        const tfsActive = Array.from(STATE.selectedTFs).map(t => parseInt(t.replace('M',''))).sort((a,b) => b-a);
-        const trendTFLabel = tfsActive.length > 0 ? `M${tfsActive[0]}` : 'M10';
-        const trendTFRef   = tfsActive.length > 1 ? `M${tfsActive[0]}` : null; // só faz sentido com 2+ TFs
-        const refDir = trendTFRef ? (multiTFTrend[`${pair}_${trendTFRef}`] || multiTFSignals[`${pair}_${trendTFRef}`]) : null;
-
-        if (refDir && refDir === signalType) { score += 2; scoreLog.push(`${trendTFRef}_alin+2`); }
-
-        // Bollinger Bands — confirma que extremo de Stoch = extremo de preço (v10.15)
-        // +2 para qualquer par — é o discriminador universal que abre espaço para majors/crosses
-        const hist4bb = STATE.marketData[pair];
-        if (hist4bb && hist4bb.length >= 20) {
-            const bb = calculateBollingerBands(hist4bb, 20, 2);
-            if (bb) {
-                const bbConfirm = (signalType === 'VENDA'  && bb.touchUpper) ||
-                                  (signalType === 'COMPRA' && bb.touchLower);
-                if (bbConfirm) { score += 2; scoreLog.push('BB_toque+2'); }
-            }
-        }
-
-        // Volatilidade ok (ATR não bloqueado)
-        if (!isVolatilityBlocked(pair)) { score += 1; scoreLog.push('ATR_ok+1'); }
-
-        // Bônus/penalidade por par
-        if (CRYPTO_PAIRS.has(pair))   { score += 1; scoreLog.push('Crypto+1'); }
-        // EUR/USD: penalidade removida (v10.15) — agora neutro como XAUUSD
-        // Era: score -= 1. Revertível se taxa cair.
-        // if (pair === 'EUR/USD') { score -= 1; scoreLog.push('EURUSD-1'); }
-
-        // Multi-TF: se ativo e TF é M1 e não há direção do TF maior → bloqueia
-        // Evita M1 "Divergente" passar sem confluência (observado na v10.15)
-        // EUR/USD: sempre exige, qualquer TF
-        // Outros pares: só bloqueia M1 sem referência quando useMultiTF ativo
-        if (tfsActive.length > 1 && !refDir) {
-            if (pair === 'EUR/USD') return; // EUR/USD sempre exige TF maior
-            if (s.useMultiTF && tf === 'M1') return; // M1 divergente bloqueado
-        }
-
-        // Threshold por categoria (v10.15)
-        // Não-cripto recebe -1 quando SM ≤ 8 — permite majors/crosses aparecerem
-        // SM=7: BTC=7, GBP/USD=6 → score BB+Stoch+MACD+ATR=7 passa no threshold 6
-        // SM≥9: threshold igual para todos — filtro máximo
-        const baseThreshold = s.scoreThreshold ?? 4;
-        const categoryReduction = (!CRYPTO_PAIRS.has(pair) && baseThreshold <= 8) ? 1 : 0;
-        const scoreThreshold = Math.max(baseThreshold - categoryReduction, 2);
-        if (score < scoreThreshold) {
-            console.log(`[SCORE] ${pair} ${tf} ${signalType} bloqueado: ${score}/${scoreThreshold} [${scoreLog.join(', ')}]`);
-            return;
-        }
-        console.log(`[SCORE] ${pair} ${tf} ${signalType} APROVADO: ${score}/${scoreThreshold} [${scoreLog.join(', ')}]`);
-
-        // ── LOCK v10.15: TTL = 2× duração da vela ──────────
-        // CSV mostrou 86 sinais duplicados (< 60s no mesmo par+TF)
-        // Causa: TTL expirava exatamente na virada de vela e o próximo tick re-disparava
-        // Solução: TTL = 2 × tfMs garante que não repete na vela atual nem na próxima
-        const now    = Date.now();
-        const tfMs   = parseInt(tf.replace('M','')) * 60 * 1000;
-        const lockTTL = tfMs * 2; // 2 velas de buffer anti-duplicata
-        const signalKey = `${pair}_${tf}`;
-
-        // Limpa locks expirados
-        STATE.lockedSignals.forEach((entry, key) => {
-            if (now - entry.ts > lockTTL) STATE.lockedSignals.delete(key);
-        });
-
-        const existing = STATE.lockedSignals.get(signalKey);
-
-        // Força do sinal: distância da zona extrema
-        const force = signalType === 'COMPRA'
-            ? Math.max(0, p.stochDw - stochVal)
-            : Math.max(0, stochVal - p.stochUp);
-
-        if (existing) {
-            if (existing.type !== signalType) return; // direção oposta → bloqueia
-            if (force <= existing.force + 10) return; // threshold de força elevado (era +5)
-            const oldRow = document.getElementById(existing.rowId);
-            if (oldRow) oldRow.remove();
-        }
-
-        const velas = Array.from(STATE.selectedVelas);
-        if (velas.length === 0) return;
-        let velaType   = velas[Math.floor(Math.random() * velas.length)];
-        const candleTime = getCandleTime(tf, velaType);
-
-        // ── COOLDOWN GLOBAL POR PAR (v10.15) ─────────────────
-        // Se um TF maior do mesmo par disparou nos últimos 30s, M1 aguarda
-        // Evita 3 sinais simultâneos no mesmo ativo (observado na v10.15)
-        if (tf === 'M1') {
-            const recentSibling = ['M5','M10'].some(otherTF => {
-                const sibKey = `${pair}_${otherTF}`;
-                const sib = STATE.lockedSignals.get(sibKey);
-                return sib && (now - sib.ts) < 30000;
-            });
-            if (recentSibling) return;
-        }
-
-        // ── FILTRO VELA ATUAL M5/M10 (v10.15) ──────────────────
-        // LOSSes observados em tempo real: ambos ocorreram em 'Vela Atual' para M5 e M10
-        // Quando ativo: força 'Próxima Vela' nesses TFs — entra no início da vela seguinte
-        if (STATE.settings.blockVelaAtualM5M10 && velaType === 'Atual') {
-            const tfMin = parseInt(tf.replace('M', ''));
-            if (tfMin >= 5) {
-                velaType = 'Próxima';
-                // recalcula candleTime para a próxima vela
-            }
-        }
-        const finalCandleTime = velaType === 'Próxima' ? getCandleTime(tf, 'Próxima') : candleTime;
-
-        STATE.lockedSignals.set(signalKey, { ts: now, force, type: signalType, rowId: `row-${STATE.rowCounter + 1}` });
-        dispatchVisualSignal(pair, signalType, tf, velaType, finalCandleTime, price.toFixed(5), stochVal, macd, mm200, source, score);
-    });
-}
-
-// ── 5. LÓGICA DE SINAL COM LOCK FIFO ──────────────────────
-
-function evaluateSignalTrigger(pair, type, price, stochVal, macd, mm200, source) {
-    const now = Date.now();
-    STATE.lockedSignals.forEach((entry, key) => {
-        const keyTf = key.split('_')[1];
-        const tfMs  = keyTf ? parseInt(keyTf.replace('M','')) * 60 * 1000 : 300000;
-        if (now - entry.ts > tfMs) STATE.lockedSignals.delete(key);
-    });
-
-    const tfs   = Array.from(STATE.selectedTFs).filter(tf => tf !== 'M15');
-    const velas = Array.from(STATE.selectedVelas);
-    if (tfs.length === 0 || velas.length === 0) return;
-
-    tfs.forEach(tf => {
-        const velaType   = velas[Math.floor(Math.random() * velas.length)];
-        const candleTime = getCandleTime(tf, velaType);
-        const signalKey  = `${pair}_${tf}`;
-        const existing   = STATE.lockedSignals.get(signalKey);
-
-        const p = STATE.params;
-        const force = type === 'COMPRA'
-            ? Math.max(0, p.stochDw - stochVal)
-            : Math.max(0, stochVal - p.stochUp);
-
-        if (existing && force <= existing.force + 5) return;
-        if (existing) {
-            const oldRow = document.getElementById(existing.rowId);
-            if (oldRow) oldRow.remove();
-        }
-
-        STATE.lockedSignals.set(signalKey, { ts: now, force, rowId: `row-${STATE.rowCounter + 1}` });
-        dispatchVisualSignal(pair, type, tf, velaType, candleTime, price.toFixed(5), stochVal, macd, mm200, source);
-    });
-}
-
-function dispatchVisualSignal(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source, score) {
-    const isConfirmed = STATE.settings.confirmMode === 'none';
-    STATE.rowCounter++;
-    const rowId = `row-${STATE.rowCounter}`;
-
-    if (!isConfirmed) {
-        STATE.pendingSignalsList.push({ id: rowId, pair, type, tf, candleTime, checked: false });
-    }
-
-    // logIndex capturado ANTES do addToLog — evita cruzamento quando 2 pares fecham simultâneos
-    const logIndexSnapshot = STATE.signalLog.length;
-
-    playSignalSound(type);
-    if (STATE.settings.popup) showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source);
-    sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200);
-    addToLog(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source);
-
-    STATE.stats.total++;
-    type === 'COMPRA' ? STATE.stats.buy++ : STATE.stats.sell++;
-    isConfirmed ? STATE.stats.conf++ : STATE.stats.pend++;
-    updateStatsUI();
-
-    const statusBadge = isConfirmed
-        ? '<span class="status-conf">✓ Conf.</span>'
-        : '<span class="status-pend">⏳ Pend.</span>';
-
-    // Stoch RSI cell com mini gauge
-    const stochColor = stochVal >= 80 ? 'var(--red)' : stochVal <= 20 ? 'var(--green)' : 'var(--text-mid)';
-    const stochCell = `<span class="stoch-gauge">
-        <span class="stoch-bar-wrap"><span class="stoch-bar-fill" style="width:${stochVal}%; background:${stochColor}"></span></span>
-        <span style="color:${stochColor}">${stochVal}</span>
-    </span>`;
-
-    // MACD cell
-    const macdCell = macd
-        ? `<span class="macd-indicator">
-            <span class="macd-bar" style="height:${Math.min(Math.abs(macd.histogram)*10000,14)+4}px; background:${macd.histogram>0?'var(--green)':'var(--red)'}"></span>
-            <span style="color:${macd.trend==='bullish'?'var(--green)':macd.trend==='bearish'?'var(--red)':'var(--text-dim)'}; font-weight:${macd.crossover?'700':'400'}">
-                ${macd.trend==='bullish'?'↑':macd.trend==='bearish'?'↓':'—'}${macd.crossover?' ✦':''}
-            </span>
-           </span>`
-        : '<span style="color:var(--text-dim)">—</span>';
-
-    // MM200 cell
-    let mm200Cell = '<span style="color:var(--text-dim)">—</span>';
-    if (mm200) {
-        const cls = mm200.trend === 'above' ? 'bull' : mm200.trend === 'below' ? 'bear' : 'neut';
-        const label = mm200.trend === 'above' ? '▲ ACIMA' : mm200.trend === 'below' ? '▼ ABAIXO' : '≈ NEAR';
-        mm200Cell = `<span class="badge-mm200 ${cls}">${label}</span>`;
-    }
-
-    const srcBadge = `<span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE':'SIM'}</span>`;
-    const displayVela = velaType === 'Atual' ? 'Atual' : candleTime;
-    // Badge de score — cor indica qualidade: ≥8 verde, 6-7 amarelo, <6 cinza
-    const scoreVal = score ?? 0;
-    const scoreColor = scoreVal >= 8 ? 'var(--green)' : scoreVal >= 6 ? 'var(--yellow)' : 'var(--text-dim)';
-    const scoreBadge = `<span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:${scoreColor}">▲${scoreVal}</span>`;
-
-    const row = `<tr id="${rowId}">
-        <td style="font-family:var(--font-mono); color:var(--text-mid)">${new Date().toLocaleTimeString()}</td>
-        <td><b style="color:var(--text-main)">${pair}</b></td>
-        <td><span class="${type==='COMPRA'?'badge-buy':'badge-sell'}">${type}</span></td>
-        <td><span class="badge-tf">${tf}</span></td>
-        <td style="font-family:var(--font-mono); color:white">${displayVela}</td>
-        <td style="font-family:var(--font-mono); color:var(--text-mid)">${price}</td>
-        <td class="open-price-cell" style="font-family:var(--font-mono); color:var(--text-dim)">—</td>
-        <td>${stochCell}</td>
-        <td>${macdCell}</td>
-        <td>${mm200Cell}</td>
-        <td class="status-cell">${statusBadge}</td>
-        <td>${srcBadge} ${scoreBadge}</td>
-        <td class="result-cell"><span class="badge-open">—</span></td>
-        <td class="result-price-cell" style="font-family:var(--font-mono); color:var(--text-dim)">—</td>
-    </tr>`;
-
-    // Registra para apuração de resultado no fechamento da vela
-    const entryPrice = parseFloat(price);
-    const tfMin      = parseInt(tf.replace('M', ''));
-    const parts      = candleTime !== 'Atual' ? candleTime.split(':') : new Date().toLocaleTimeString('pt-BR').split(':');
-    const openSec    = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2] || 0);
-    const closeSec   = openSec + tfMin * 60 + 5;
-
-    // precoAbertura = preço no momento em que a vela alvo abre (capturado pelo checkResults)
-    STATE.pendingResultsList.push({
-        warningFired: false,   // flag: aviso antecipado de 15s já disparado?
-        rowId, pair, type, tf,
-        precoSinal:    entryPrice,   // ← preço no momento do sinal
-        precoAbertura: null,         // ← preenchido quando closeSec - tfMin*60 chega
-        precoResultado: null,        // ← preenchido no fechamento
-        openSec,
-        closeSec,
-        logIndex: logIndexSnapshot, // capturado antes do addToLog — evita cruzamento
-    });
-
-    const tbody = document.getElementById('signal-rows');
-    tbody.insertAdjacentHTML('afterbegin', row);
-    while (tbody.children.length > 30) tbody.lastElementChild.remove();
-}
-
-// ── 6. TIMEOUT DE PENDENTES ────────────────────────────────
-
-function setConfirmMode(mode) {
-    STATE.settings.confirmMode  = mode;
-    STATE.settings.confirmClose = mode !== 'none';
-}
-
-function checkPendingTimeouts() {
-    const mode   = STATE.settings.confirmMode;
-    if (mode === 'none') return; // sem confirmação — nada a fazer
-
-    const now    = new Date();
-    const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-
-    for (let i = STATE.pendingSignalsList.length - 1; i >= 0; i--) {
-        const sig    = STATE.pendingSignalsList[i];
-        if (sig.checked) continue;
-
-        const tfMin  = parseInt(sig.tf.replace('M', ''));
-        const parts  = sig.candleTime.split(':');
-        const sigSec = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
-
-        // ── MODO: Próximo tick ──────────────────────────────
-        if (mode === 'tick') {
-            if (!sig.firstTickMs) { sig.firstTickMs = Date.now(); continue; }
-            if (Date.now() - sig.firstTickMs < 1500) continue; // aguarda novo tick
-
-            // Expira após 1 TF completo
-            const ageSec = nowSec - sigSec;
-            if (ageSec > tfMin * 60 && ageSec < 43200) {
-                _expireSignal(sig, i); continue;
-            }
-
-            const hist = STATE.marketData[sig.pair];
-            if (!hist || hist.length < STATE.params.stochRsiPeriod + STATE.params.stochKPeriod) continue;
-
-            sig.checked = true;
-            _resolveSignal(sig, i, hist);
-            continue;
-        }
-
-        // ── MODO: Na abertura da vela ───────────────────────
-        if (mode === 'open') {
-            const diffSec = sigSec - nowSec;
-            if (diffSec > 0) continue; // ainda não abriu
-            if (diffSec < -(tfMin * 60)) { _expireSignal(sig, i); continue; }
-
-            const hist = STATE.marketData[sig.pair];
-            if (!hist || hist.length < STATE.params.stochRsiPeriod + STATE.params.stochKPeriod) {
-                sig.checked = true;
-                _confirmSignal(sig, i); continue; // sem dados → confirma
-            }
-
-            sig.checked = true;
-            _resolveSignal(sig, i, hist);
-            continue;
-        }
-    }
-}
-
-function _resolveSignal(sig, i, hist) {
-    const p     = STATE.params;
-    const stoch = calculateStochRSI(closes(hist), p.stochRsiPeriod, p.stochKPeriod);
-    const confirmed = stoch
-        ? (sig.type === 'COMPRA' ? stoch.k <= p.stochUp : stoch.k >= p.stochDw)
-        : true;
-    confirmed ? _confirmSignal(sig, i) : _cancelSignal(sig, i);
-}
-
-function _confirmSignal(sig, i) {
-    const row = document.getElementById(sig.id);
-    if (row) row.querySelector('.status-cell').innerHTML = '<span class="status-conf">✓ Conf.</span>';
-    STATE.stats.pend--; STATE.stats.conf++;
-    updateStatsUI();
-    STATE.pendingSignalsList.splice(i, 1);
-}
-
-function _cancelSignal(sig, i) {
-    const row = document.getElementById(sig.id);
-    if (row) {
-        row.style.background = 'rgba(255,51,85,0.07)';
-        row.innerHTML = `<td colspan="11" style="text-align:center; color:var(--red);
-            font-family:var(--font-mono); font-size:12px; padding:8px">
-            ⚠ Cancelado — Stoch RSI reverteu (${sig.pair} ${sig.tf})
-        </td>`;
-        setTimeout(() => row?.remove(), 3000);
-    }
-    STATE.stats.total--; STATE.stats.pend--;
-    if (sig.type === 'COMPRA') STATE.stats.buy--; else STATE.stats.sell--;
-    updateStatsUI();
-    STATE.pendingSignalsList.splice(i, 1);
-}
-
-function _expireSignal(sig, i) {
-    const row = document.getElementById(sig.id);
-    if (row) {
-        row.style.opacity = '0.35';
-        row.querySelector('.status-cell').innerHTML =
-            '<span style="color:var(--text-dim);font-size:11px">✗ Expirado</span>';
-    }
-    STATE.stats.pend--;
-    updateStatsUI();
-    STATE.pendingSignalsList.splice(i, 1);
-}
-
-// ── APURAÇÃO DE RESULTADO WIN/LOSS ────────────────────────
-
-function checkResults() {
-    if (STATE.pendingResultsList.length === 0) return;
-
-    const now    = new Date();
-    const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-
-    for (let i = STATE.pendingResultsList.length - 1; i >= 0; i--) {
-        const r = STATE.pendingResultsList[i];
-
-        const hist = STATE.marketData[r.pair];
-        if (!hist || hist.length === 0) { STATE.pendingResultsList.splice(i, 1); continue; }
-
-        const currentPrice = lastClose(hist);
-
-        // ── Captura precoAbertura quando a vela alvo abre ──
-        if (r.precoAbertura === null) {
-            let diffOpen = r.openSec - nowSec;
-            if (diffOpen < -43200) diffOpen += 86400;
-            if (diffOpen <= 0) {
-                r.precoAbertura = currentPrice;
-                // Atualiza coluna Preço Abertura na linha da tabela
-                const row = document.getElementById(r.rowId);
-                if (row) {
-                    const cell = row.querySelector('.open-price-cell');
-                    if (cell) cell.textContent = currentPrice;
-                }
-                // Atualiza no log
-                const logEntry = STATE.signalLog[STATE.signalLog.length - 1 - r.logIndex];
-                if (logEntry) logEntry.precoAbertura = currentPrice;
-            }
-        }
-
-        // ── Aviso antecipado M1: alerta 15s antes do fechamento ──
-        // Dá tempo de entrar na corretora antes da vela fechar
-        // Só para M1 — TFs maiores têm janela suficiente
-        if (r.tf === 'M1' && !r.warningFired) {
-            let diffWarn = r.closeSec - nowSec;
-            if (diffWarn < -43200) diffWarn += 86400;
-            if (diffWarn <= 15 && diffWarn > 0) {
-                r.warningFired = true;
-                playWarningSound();
-                // Badge visual de contagem na linha da tabela
-                const row = document.getElementById(r.rowId);
-                if (row) {
-                    const statusCell = row.querySelector('.status-cell');
-                    if (statusCell) {
-                        statusCell.innerHTML = `<span style="color:var(--yellow);font-family:var(--font-mono);font-weight:700;animation:blink 0.5s step-end infinite">⚠ ${Math.round(diffWarn)}s</span>`;
-                    }
-                }
-            }
-        }
-
-        // ── Ainda não chegou o fechamento ──
-        let diffSec = r.closeSec - nowSec;
-        if (diffSec < -43200) diffSec += 86400;
-        if (diffSec > 0) continue;
-
-        // Expiração: passou mais de 2 TFs sem apurar
-        if (diffSec < -(parseInt(r.tf.replace('M','')) * 120)) {
-            STATE.pendingResultsList.splice(i, 1); continue;
-        }
-
-        // Verifica se o tick já chegou após o fechamento
-        const lastCandle    = hist[hist.length - 1];
-        const lastCandleSec = lastCandle.t ? Math.floor(lastCandle.t / 1000) % 86400 : nowSec;
-        if (lastCandleSec < r.closeSec - 43200 || lastCandleSec < r.closeSec) {
-            if (diffSec > -10) continue;
-        }
-
-        const closePrice = currentPrice;
-        if (closePrice === r.precoSinal && diffSec > -15) continue; // WS travado
-
-        r.precoResultado = closePrice;
-
-        const win = r.type === 'COMPRA'
-            ? closePrice > r.precoSinal
-            : closePrice < r.precoSinal;
-
-        // Calcula variação em pips/pontos
-        const dp       = r.pair.includes('BTC') || r.pair.includes('ETH') || r.pair.includes('XAU') ? 2 : 5;
-        const varSinal  = (closePrice - r.precoSinal).toFixed(dp);
-        const varAbert  = r.precoAbertura ? (closePrice - r.precoAbertura).toFixed(dp) : '—';
-        const sinalChar = closePrice >= r.precoSinal ? '+' : '';
-
-        // Atualiza linha na tabela
-        const row = document.getElementById(r.rowId);
-        if (row) {
-            const resultCell = row.querySelector('.result-cell');
-            if (resultCell) {
-                resultCell.innerHTML = win
-                    ? `<span class="badge-win">✓ WIN</span>`
-                    : `<span class="badge-loss">✗ LOSS</span>`;
-            }
-            const resPriceCell = row.querySelector('.result-price-cell');
-            if (resPriceCell) resPriceCell.textContent = closePrice;
-            row.style.background = win ? 'rgba(0,255,136,0.03)' : 'rgba(255,51,85,0.04)';
-            // Remove badge ⚠️15s quando resultado chegar — para de piscar
-            const statusCell = row.querySelector('.status-cell');
-            if (statusCell && statusCell.innerHTML.includes('⚠')) {
-                statusCell.innerHTML = win
-                    ? '<span class="status-conf">✓ Conf.</span>'
-                    : '<span style="color:var(--red)">✗ Enc.</span>';
-            }
-        }
-
-        // Atualiza entrada no log com os três preços
-        const logEntry = STATE.signalLog[STATE.signalLog.length - 1 - r.logIndex];
-        if (logEntry) {
-            logEntry.precoAbertura  = r.precoAbertura ?? '—';
-            logEntry.precoResultado = closePrice;
-            logEntry.resultado      = win ? 'WIN' : 'LOSS';
-            logEntry.varTotal       = `${sinalChar}${varSinal}`;
-            logEntry.varAbertura    = r.precoAbertura ? `${closePrice >= r.precoAbertura ? '+' : ''}${varAbert}` : '—';
-        }
-
-        // Stats
-        if (!STATE.stats.wins)   STATE.stats.wins = 0;
-        if (!STATE.stats.losses) STATE.stats.losses = 0;
-        win ? STATE.stats.wins++ : STATE.stats.losses++;
-
-        sendTelegramResult(r, win, closePrice);
-        registerBacktestResult(r.pair, r.tf, win);
-        STATE.pendingResultsList.splice(i, 1);
-    }
-}
-
-
-let audioCtx = null;
-function getAudioCtx() {
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    return audioCtx;
-}
-
-// ── AVISO ANTECIPADO M1 (v10.15) ──────────────────────────
-// Som e badge distintos do sinal — avisa para entrar na corretora
-function playWarningSound() {
-    if (STATE.isMuted) return;
-    try {
-        const ctx = getAudioCtx();
-        // Dois pulsos rápidos — diferente do sinal normal
-        [0, 0.15].forEach(delay => {
-            const osc  = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.frequency.setValueAtTime(880, ctx.currentTime + delay);
-            osc.type = 'square';
-            gain.gain.setValueAtTime(0.04, ctx.currentTime + delay);
-            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + delay + 0.1);
-            osc.start(ctx.currentTime + delay);
-            osc.stop(ctx.currentTime + delay + 0.1);
-            osc.onended = () => { osc.disconnect(); gain.disconnect(); };
-        });
-    } catch(e) {}
-}
-
-function playSignalSound(type) {
-    if (STATE.isMuted) return;
-    try {
-        const ctx = getAudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.setValueAtTime(type === 'COMPRA' ? 1050 : 340, ctx.currentTime);
-        osc.type = type === 'COMPRA' ? 'sine' : 'triangle';
-        gain.gain.setValueAtTime(0.06, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.3);
-        osc.onended = () => { osc.disconnect(); gain.disconnect(); };
-    } catch (e) { /* áudio pode falhar sem interação do usuário */ }
-}
-
-// ── 8. UI HELPERS ──────────────────────────────────────────
-
-function syncVal(el, targetId) {
-    document.getElementById(targetId).textContent = el.value;
-    // Atualiza estado central imediatamente
-    const map = {
-        'cfg-rsi-p':'rsiPeriod','cfg-rsi-up':'rsiUp','cfg-rsi-dw':'rsiDw',
-        'cfg-macd-f':'macdFast','cfg-macd-s':'macdSlow','cfg-macd-sig':'macdSignal',
-        'cfg-stoch-rsi':'stochRsiPeriod','cfg-stoch-k':'stochKPeriod',
-        'cfg-stoch-up':'stochUp','cfg-stoch-dw':'stochDw',
-    };
-    if (map[el.id]) STATE.params[map[el.id]] = parseInt(el.value);
-}
-
-function setApiStatus(mode, text) {
-    const bar = document.getElementById('api-status-bar');
-    const badge = document.getElementById('api-source-badge');
-    const txt = document.getElementById('api-status-text');
-    const dot = document.getElementById('status-dot');
-    const label = document.getElementById('status-label');
-
-    bar.className = 'connected';
-    if (mode === 'live') {
-        badge.className = 'api-badge ok'; badge.textContent = 'LIVE';
-        dot.className = 'status-dot'; label.textContent = 'Live Engine';
-    } else if (mode === 'error') {
-        badge.className = 'api-badge err'; badge.textContent = 'ERR';
-        dot.className = 'status-dot yellow'; label.textContent = 'Erro API';
-        bar.className = 'error';
-    } else if (mode === 'connecting') {
-        badge.className = 'api-badge sim'; badge.textContent = 'CONN...';
-        dot.className = 'status-dot yellow'; label.textContent = 'Conectando';
-    } else {
-        badge.className = 'api-badge sim'; badge.textContent = 'SIM';
-        dot.className = 'status-dot'; label.textContent = 'Simulação';
-    }
-    txt.textContent = text;
-}
-
-function updateApiTimestamp() {
-    if (STATE.apiLastUpdate) {
-        document.getElementById('api-last-update').textContent =
-            `Último tick: ${STATE.apiLastUpdate.toLocaleTimeString()}`;
-    }
-}
-
-function updateStochDisplay(pair, stoch) {
-    const el = document.getElementById('stoch-status');
-    if (!el || !stoch) return;
-    const color = stoch.zone === 'overbought' ? 'var(--red)' : stoch.zone === 'oversold' ? 'var(--green)' : 'var(--text-dim)';
-    const zone = stoch.zone === 'overbought' ? 'SOBRECOMPRADO' : stoch.zone === 'oversold' ? 'SOBREVENDIDO' : 'NEUTRO';
-    el.innerHTML = `<span style="color:${color}">${pair} K: ${stoch.k} — ${zone}</span>`;
-}
-
-function updateMM200Display(pair, mm200, price) {
-    const el = document.getElementById('mm200-status');
-    if (!el || !mm200) return;
-    const color = mm200.trend === 'above' ? 'var(--green)' : mm200.trend === 'below' ? 'var(--red)' : 'var(--text-dim)';
-    const label = mm200.trend === 'above' ? '▲ Acima' : mm200.trend === 'below' ? '▼ Abaixo' : '≈ Próximo';
-    const partial = mm200.partial ? ' <span style="color:var(--yellow)">[parcial]</span>' : '';
-    el.innerHTML = `<span style="color:${color}">${pair} ${label} MM200${partial}</span><br>
-        <span style="color:var(--text-dim)">MM: ${mm200.value} | Dist: ${mm200.distance > 0 ? '+' : ''}${mm200.distance}%</span>`;
-}
-
-
-function updateMacdDisplay(macd) {
-    const el = document.getElementById('macd-status');
-    if (!el || !macd) return;
-    const color = macd.trend === 'bullish' ? 'var(--green)' : macd.trend === 'bearish' ? 'var(--red)' : 'var(--text-dim)';
-    el.innerHTML = `<span style="color:${color}">MACD: ${macd.macdLine.toFixed(6)} | SIG: ${macd.signalLine.toFixed(6)} | HIST: ${macd.histogram.toFixed(6)}</span>`;
-}
-
-function showErrorToast(msg) {
-    const el = document.getElementById('error-toast');
-    el.textContent = '⚠ ' + msg;
-    el.style.display = 'block';
-    setTimeout(() => { el.style.display = 'none'; }, 5000);
-}
-
-function toggleSidebar() { document.getElementById('sidebar').classList.toggle('hidden'); }
-function toggleAudio() {
-    STATE.isMuted = !STATE.isMuted;
-    document.getElementById('btn-audio').textContent = STATE.isMuted ? '🔇' : '🔊';
-}
-function togglePause() {
-    STATE.isPaused = !STATE.isPaused;
-    const dot = document.getElementById('status-dot');
-    const label = document.getElementById('status-label');
-    const btn = document.getElementById('btn-pause');
-    if (STATE.isPaused) {
-        dot.className = 'status-dot red'; label.textContent = 'Pausado';
-        btn.style.color = 'var(--red)';
-    } else {
-        dot.className = 'status-dot'; label.textContent = STATE.apiMode === 'live' ? 'Live Engine' : 'Simulação';
-        btn.style.color = '';
-    }
-}
-
-function updateClock() {
-    document.getElementById('clock').textContent = new Date().toLocaleTimeString();
-}
-
-function updateStatHeader() {
-    document.getElementById('stat-badges-tf').innerHTML =
-        Array.from(STATE.selectedTFs).map(tf => `<span class="header-badge">${tf}</span>`).join('');
-    document.getElementById('stat-badges-vela').innerHTML =
-        Array.from(STATE.selectedVelas).map(v => `<span class="header-badge vela">${v}</span>`).join('');
-}
-
-function updateStatsUI() {
-    const s = STATE.stats;
-    document.getElementById('st-total').textContent = s.total;
-    document.getElementById('st-buy').textContent = s.buy;
-    document.getElementById('st-sell').textContent = s.sell;
-    document.getElementById('st-conf').textContent = s.conf;
-    document.getElementById('st-pend').textContent = s.pend;
-    document.getElementById('st-rate').textContent =
-        s.total > 0 ? `${((s.conf / s.total) * 100).toFixed(1)}%` : '0.0%';
-}
-
-function setValues(p, up, dw, mf, ms, msig, srsiP, srsiK, srsiUp, srsiDw) {
-    const set = (id, valId, v) => {
-        const el = document.getElementById(id);
-        const valEl = document.getElementById(valId);
-        if (el) el.value = v;
-        if (valEl) valEl.textContent = v;
-    };
-    // RSI e Stoch RSI compartilham os mesmos sliders agora
-    set('cfg-rsi-p',  'val-rsi-p',  p);   STATE.params.rsiPeriod      = p;
-                                           STATE.params.stochRsiPeriod = p; // sincroniza
-    set('cfg-rsi-up', 'val-rsi-up', up);  STATE.params.rsiUp          = up;
-                                           STATE.params.stochUp        = up;
-    set('cfg-rsi-dw', 'val-rsi-dw', dw);  STATE.params.rsiDw          = dw;
-                                           STATE.params.stochDw        = dw;
-    set('cfg-stoch-k','val-stoch-k', srsiK); STATE.params.stochKPeriod = srsiK;
-    set('cfg-macd-f', 'val-macd-f',  mf);  STATE.params.macdFast      = mf;
-    set('cfg-macd-s', 'val-macd-s',  ms);  STATE.params.macdSlow      = ms;
-    set('cfg-macd-sig','val-macd-sig',msig); STATE.params.macdSignal   = msig;
-}
-
-// Presets por TF: (rsiP, rsiUp, rsiDw, macdF, macdS, macdSig, stochRsiP, stochKP, stochUp, stochDw)
-const TF_PRESETS = {
-    'M1':  [7,  85, 15, 7,  13, 9,  7,  14, 85, 15],
-    'M5':  [14, 80, 20, 14, 26, 9,  14, 14, 80, 20],
-    'M10': [21, 80, 20, 21, 34, 9,  21, 14, 75, 25],
-    'M15': [21, 80, 20, 21, 34, 9,  21, 14, 75, 25],
-    'ALL': [21, 80, 20, 21, 34, 9,  21, 14, 80, 20],
-};
-
-function updatePresets() {
-    const hasTodas = STATE.selectedTFs.size === 3; // M1+M5+M10
-    const sliders = document.querySelectorAll('.ind-slider');
-    const lockMsg = document.getElementById('ind-lock-msg');
-
-    if (hasTodas) {
-        sliders.forEach(s => s.disabled = true);
-        lockMsg.style.display = 'inline';
-        setValues(...TF_PRESETS['ALL']);
-    } else {
-        sliders.forEach(s => s.disabled = false);
-        lockMsg.style.display = 'none';
-        if (STATE.selectedTFs.size === 1) {
-            const tf = Array.from(STATE.selectedTFs)[0];
-            const preset = TF_PRESETS[tf] || TF_PRESETS['M5'];
-            setValues(...preset);
-        }
-    }
-    updateStatHeader();
-}
-
-function toggleVela(tipo) {
-    const el = document.getElementById(tipo === 'Atual' ? 'vela-atual' : 'vela-prox');
-    STATE.selectedVelas.has(tipo)
-        ? (STATE.selectedVelas.delete(tipo), el.classList.remove('active'))
-        : (STATE.selectedVelas.add(tipo), el.classList.add('active'));
-    updateStatHeader();
-}
-
-function toggleTF(tf) {
-    const el = document.getElementById(`tf-${tf}`);
-    STATE.selectedTFs.has(tf)
-        ? (STATE.selectedTFs.delete(tf), el.classList.remove('active'))
-        : (STATE.selectedTFs.add(tf), el.classList.add('active'));
-    document.getElementById('btn-todas-tf').classList.remove('active');
-    updatePresets();
-}
-
-function toggleAllTF() {
-    const allTFs = ['M1','M5','M10']; // M15 removido — TwelveData não suporta este intervalo
-    const btn = document.getElementById('btn-todas-tf');
-    if (btn.classList.contains('active')) {
-        STATE.selectedTFs.clear();
-        allTFs.forEach(tf => document.getElementById(`tf-${tf}`).classList.remove('active'));
-        btn.classList.remove('active');
-    } else {
-        allTFs.forEach(tf => { STATE.selectedTFs.add(tf); document.getElementById(`tf-${tf}`).classList.add('active'); });
-        btn.classList.add('active');
-    }
-    updatePresets();
-}
-
-// ── Grupos de pares para seletor colapsável ────────────────
-const ASSET_GROUPS = [
-    { id: 'majors',     label: 'Majors',      icon: '💱', pairs: ['EUR/USD','GBP/USD','USD/JPY','USD/CHF','AUD/USD','USD/CAD','NZD/USD'] },
-    { id: 'crosses',    label: 'Crosses',     icon: '🔀', pairs: ['EUR/GBP','EUR/JPY','GBP/JPY','AUD/JPY','EUR/AUD','GBP/AUD'] },
-    { id: 'commodities',label: 'Commodities', icon: '🏅', pairs: ['XAUUSD','XAGUSD','WTICOUSD'] },
-    { id: 'crypto',     label: 'Cripto',      icon: '₿',  pairs: ['BTC/USD','ETH/USD','SOL/USD','XRP/USD'] },
-];
-
-function renderAssetGroups() {
-    const container = document.getElementById('asset-groups');
-    if (!container) return;
-    container.innerHTML = ASSET_GROUPS.map(g => {
-        const activeCount = g.pairs.filter(p => STATE.selectedAssets.has(p)).length;
-        const chips = g.pairs.map(p => {
-            const safe   = p.replace(/[\/\s]/g,'');
-            const active = STATE.selectedAssets.has(p) ? 'active' : '';
-            const short  = p.replace('/USD','').replace('/','');
-            return `<div class="asset-chip ${active}" id="ast-${safe}" onclick="toggleAsset('${p}')" title="${p}">${short}</div>`;
-        }).join('');
-        return `<div class="asset-group">
-            <div class="asset-group-header" onclick="toggleAssetGroup('${g.id}')">
-                <div class="asset-group-left">
-                    <span style="font-size:13px">${g.icon}</span>
-                    <span class="asset-group-label">${g.label}</span>
-                    <span class="asset-group-count">${activeCount}/${g.pairs.length}</span>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:10px;color:var(--blue);cursor:pointer;" onclick="event.stopPropagation();bulkGroup('${g.id}',true)">All</span>
-                    <span style="font-size:10px;color:var(--text-dim);cursor:pointer;" onclick="event.stopPropagation();bulkGroup('${g.id}',false)">None</span>
-                    <span class="asset-group-arrow" id="arrow-${g.id}">▼</span>
-                </div>
-            </div>
-            <div class="asset-group-body open" id="grp-${g.id}">${chips}</div>
-        </div>`;
-    }).join('');
-}
-
-function toggleAssetGroup(id) {
-    const body  = document.getElementById(`grp-${id}`);
-    const arrow = document.getElementById(`arrow-${id}`);
-    if (!body) return;
-    const isOpen = body.classList.toggle('open');
-    arrow.classList.toggle('open', isOpen);
-}
-
-function updateGroupCount(pair) {
-    const group = ASSET_GROUPS.find(g => g.pairs.includes(pair));
-    if (!group) return;
-    const count = document.querySelector(`#grp-${group.id}`)?.closest('.asset-group')?.querySelector('.asset-group-count');
-    if (count) {
-        const active = group.pairs.filter(p => STATE.selectedAssets.has(p)).length;
-        count.textContent = `${active}/${group.pairs.length}`;
-    }
-}
-
-// Debounce para recarregar histórico ao mudar seleção de ativos
-let _assetRefreshTimer = null;
-function scheduleAssetRefresh() {
-    clearTimeout(_assetRefreshTimer);
-    _assetRefreshTimer = setTimeout(async () => {
-        // Só recarrega ativos que ainda não têm histórico
-        const missing = Array.from(STATE.selectedAssets).filter(p => !STATE.marketData[p] || STATE.marketData[p].length < 20);
-        if (missing.length > 0) {
-            console.log(`[API] Recarregando histórico para ${missing.length} novos ativos...`);
-            await populateHistoricalData(new Set(missing));
-        }
-    }, 1500); // aguarda 1.5s após última mudança antes de recarregar
-}
-
-function toggleAsset(a) {
-    const safeId = a.replace(/[\/\s]/g,'');
-    const el = document.getElementById(`ast-${safeId}`);
-    STATE.selectedAssets.has(a)
-        ? (STATE.selectedAssets.delete(a), el?.classList.remove('active'))
-        : (STATE.selectedAssets.add(a),    el?.classList.add('active'));
-    updateGroupCount(a);
-    scheduleAssetRefresh();
-}
-
-function bulkGroup(groupId, status) {
-    const group = ASSET_GROUPS.find(g => g.id === groupId);
-    if (!group) return;
-    group.pairs.forEach(a => {
-        const el = document.getElementById(`ast-${a.replace(/[\/\s]/g,'')}`);
-        status ? STATE.selectedAssets.add(a) : STATE.selectedAssets.delete(a);
-        el?.classList.toggle('active', status);
-    });
-    updateGroupCount(group.pairs[0]);
-    scheduleAssetRefresh();
-}
-
-function bulkAssets(status) {
-    STATE.assets.forEach(a => {
-        const el = document.getElementById(`ast-${a.replace(/[\/\s]/g,'')}`);
-        status ? STATE.selectedAssets.add(a) : STATE.selectedAssets.delete(a);
-        el?.classList.toggle('active', status);
-    });
-    // Atualiza contadores de todos os grupos
-    ASSET_GROUPS.forEach(g => updateGroupCount(g.pairs[0]));
-}
-
-function getCandleTime(tf, tipoVela) {
-    // Usa getBRTTime() para alinhar com o horário da Bullex (UTC-3)
-    // Bug anterior: new Date() usava fuso local → vela calculada 1 candle atrasada
-    const now = getBRTTime();
-    let min = now.getHours() * 60 + now.getMinutes();
-    const step = parseInt(tf.replace('M',''));
-    let startMin = Math.floor(min / step) * step;
-    if (tipoVela === 'Próxima') startMin += step;
-    const hrs = Math.floor(startMin / 60) % 24;
-    const mins = startMin % 60;
-    return `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:00`;
-}
-
-function showPopup(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source) {
-    const id = `popup-${STATE.rowCounter}`;
-    const titleClass = type === 'COMPRA' ? 'txt-buy' : 'txt-sell';
-    const bgClass = type === 'COMPRA' ? 'bg-buy' : 'bg-sell';
-    const alertClass = type === 'COMPRA' ? 'buy-alert' : 'sell-alert';
-    const macdInfo = macd ? `${macd.trend === 'bullish' ? '↑ Bull' : macd.trend === 'bearish' ? '↓ Bear' : '— Neu'}` : '—';
-    const mm200Info = mm200 ? `${mm200.trend === 'above' ? '▲ Acima' : mm200.trend === 'below' ? '▼ Abaixo' : '≈ Near'}` : '—';
-    const html = `
-        <div class="popup-alert ${alertClass}" id="${id}">
-            <div class="popup-title ${titleClass}">
-                <span class="popup-circle ${bgClass}"></span> ${type}
-            </div>
-            <div class="popup-grid">
-                <div class="p-item"><span class="p-label">Ativo</span><span class="p-val">${pair}</span></div>
-                <div class="p-item"><span class="p-label">TF</span><span class="p-val">${tf}</span></div>
-                <div class="p-item"><span class="p-label">Preço</span><span class="p-val">${price}</span></div>
-                <div class="p-item"><span class="p-label">Stoch RSI</span><span class="p-val">${stochVal}</span></div>
-                <div class="p-item"><span class="p-label">MACD</span><span class="p-val" style="font-size:14px">${macdInfo}</span></div>
-                <div class="p-item"><span class="p-label">MM200</span><span class="p-val" style="font-size:14px">${mm200Info}</span></div>
-                <div class="p-item" style="grid-column:span 2"><span class="p-label">Vela</span><span class="p-val" style="font-size:14px">${velaType === 'Atual' ? 'Atual' : candleTime}</span></div>
-            </div>
-            <div class="popup-src">
-                <span>OP245-C v10.15</span>
-                <span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE API':'SIMULAÇÃO'}</span>
-            </div>
-        </div>`;
-    document.getElementById('popup-container').insertAdjacentHTML('afterbegin', html);
-    setTimeout(() => document.getElementById(id)?.remove(), 6000);
-}
-
-// ── TELEGRAM ───────────────────────────────────────────────
-
-function onTelegramChange() {
-    const token  = document.getElementById('cfg-tg-token').value.trim();
-    const chatId = document.getElementById('cfg-tg-chatid').value.trim();
-    STATE.telegram.token  = token;
-    STATE.telegram.chatId = chatId;
-    // Salva no localStorage
-    try {
-        localStorage.setItem('op245_tg_token',  token);
-        localStorage.setItem('op245_tg_chatid', chatId);
-    } catch(e) {}
-    // Atualiza status visual
-    const hasBoth = token.length > 10 && chatId.length > 3;
-    document.getElementById('tg-status-dot').style.cssText =
-        `width:7px;height:7px;border-radius:50%;flex-shrink:0;background:${hasBoth ? 'var(--yellow)' : 'var(--text-dim)'};${hasBoth ? 'box-shadow:0 0 6px var(--yellow)' : ''}`;
-    document.getElementById('tg-status-label').textContent = hasBoth ? 'Configurado — teste o envio' : 'Preencha token e chat ID';
-    document.getElementById('tg-status-label').style.color = hasBoth ? 'var(--yellow)' : 'var(--text-dim)';
-}
-
-async function testTelegram() {
-    const { token, chatId } = STATE.telegram;
-    if (!token || !chatId) {
-        showErrorToast('Preencha Token e Chat ID do Telegram');
+function startEngine() {
+    STATE.ssid = document.getElementById('ssid-input').value.trim();
+    if (STATE.ssid.length < 10) {
+        alert("SSID inválido. Siga as instruções acima para obter o token correto.");
         return;
     }
-    const msg = `🤖 *OP245-C v10.15 — Teste de Conexão*\n\nBot conectado com sucesso!\nAlertas de sinais estão ativos. ✅`;
-    const ok = await sendTelegramMessage(msg);
-    if (ok) {
-        document.getElementById('tg-status-dot').style.cssText =
-            'width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--green);box-shadow:0 0 6px var(--green)';
-        document.getElementById('tg-status-label').textContent = '✓ Conectado e funcionando';
-        document.getElementById('tg-status-label').style.color = 'var(--green)';
-        document.getElementById('chk-tg-active').checked = true;
-        STATE.telegram.active = true;
-    } else {
-        showErrorToast('Falha no envio — verifique Token e Chat ID');
-    }
+    // Oculta instrução após conectar
+    document.getElementById('how-to-box').style.display = 'none';
+    document.getElementById('btn-connect').disabled = true;
+    document.getElementById('btn-connect').textContent = 'CONECTANDO...';
+    connect();
 }
 
-async function sendTelegramMessage(text) {
-    const { token, chatId } = STATE.telegram;
-    if (!token || !chatId) return false;
-    try {
-        // Usa GET com parâmetros na URL para evitar CORS preflight
-        const encoded = encodeURIComponent(text);
-        const url = `https://api.telegram.org/bot${token}/sendMessage?chat_id=${chatId}&text=${encoded}&parse_mode=Markdown`;
-        const res = await fetch(url, { method: 'GET' });
-        const data = await res.json();
-        if (!data.ok) console.warn('[Telegram] Erro:', data.description);
-        return data.ok === true;
-    } catch(e) {
-        console.warn('[Telegram] Erro ao enviar:', e.message);
-        return false;
-    }
-}
+function connect() {
+    if (STATE.ws) STATE.ws.close();
+    if (STATE.pingInterval) clearInterval(STATE.pingInterval);
+    if (STATE.reconnectTimer) clearTimeout(STATE.reconnectTimer);
 
-function sendTelegramAlert(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200) {
-    if (!STATE.telegram.active) return;
+    // Proxy local — repassa para IQ Option com headers corretos
+    const WS_URL = "ws://localhost:3000";
+    log(`Conectando em ${WS_URL}`, '#ffcc00');
 
-    const emoji      = type === 'COMPRA' ? '🟢' : '🔴';
-    const direcao    = type === 'COMPRA' ? '📈 COMPRA' : '📉 VENDA';
-    const vela       = velaType === 'Atual' ? 'Vela Atual' : `Próxima: ${candleTime}`;
-    const macdTxt    = macd  ? (macd.trend  === 'bullish' ? '↑ Bullish' : macd.trend === 'bearish' ? '↓ Bearish' : '— Neutro') : '—';
-    const mm200Txt   = mm200 ? (mm200.trend === 'above'   ? '▲ Acima'   : mm200.trend === 'below'  ? '▼ Abaixo'  : '≈ Near')   : '—';
+    STATE.ws = new WebSocket(WS_URL);
 
-    const msg =
-`${emoji} *SINAL ${direcao}*
+    STATE.ws.onopen = () => {
+        log("Conexão aberta. Autenticando...", '#ffcc00');
+        updateStatus('yellow', 'AUTENTICANDO...');
 
-📊 *Ativo:* ${pair}
-⏱ *Timeframe:* ${tf}
-💰 *Preço:* ${price}
-🕯 *Entrada:* ${vela}
-
-📉 *Stoch RSI:* ${stochVal}
-📊 *MACD:* ${macdTxt}
-📈 *MM200:* ${mm200Txt}
-
-🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v10.15 Engine_`;
-
-    sendTelegramMessage(msg);
-}
-
-async function sendTelegramResult(r, win, closePrice) {
-    const RESULT_CHAT_ID = '-5246044452';
-    const { token } = STATE.telegram;
-    if (!token) return;
-
-    const emoji     = win ? '✅' : '❌';
-    const resultado = win ? 'WIN' : 'LOSS';
-    const direcao   = r.type === 'COMPRA' ? '📈 COMPRA' : '📉 VENDA';
-    const variacao  = ((closePrice - r.precoSinal) / r.precoSinal * 100).toFixed(4);
-    const sinalChar = closePrice >= r.precoSinal ? '+' : '';
-    const aberturaLine = r.precoAbertura ? `\n💹 *P.Abertura:* ${r.precoAbertura}` : '';
-
-    const msg =
-`${emoji} *RESULTADO: ${resultado}*
-
-📊 *Ativo:* ${r.pair}
-${direcao}
-⏱ *Timeframe:* ${r.tf}
-
-💰 *P.Sinal:* ${r.precoSinal}${aberturaLine}
-💵 *P.Resultado:* ${closePrice}
-📐 *Variação:* ${sinalChar}${variacao}%
-
-🕐 _${new Date().toLocaleTimeString('pt-BR')}_
-_OP245-C v10.15 Engine_`;
-
-    try {
-        const encoded = encodeURIComponent(msg);
-        await fetch(`https://api.telegram.org/bot${token}/sendMessage?chat_id=${RESULT_CHAT_ID}&text=${encoded}&parse_mode=Markdown`);
-    } catch(e) {
-        console.warn('[TG] Falha ao enviar resultado:', e.message);
-    }
-}
-
-
-// ══════════════════════════════════════════════════════════
-//  FILTROS AVANÇADOS
-// ══════════════════════════════════════════════════════════
-
-// ── F1. HORÁRIO DE LIQUIDEZ ────────────────────────────────
-// Janelas BRT (UTC-3): Londres 08-17h, NY 13-22h
-// Sobreposição Londres+NY (13-17h BRT) = janela de ouro
-const LIQUIDITY_WINDOWS = [
-    { name: 'Londres',    open: 8,  close: 17 },
-    { name: 'Nova York',  open: 13, close: 22 },
-];
-
-function isLiquidityWindow() {
-    const brt = new Date(Date.now() - 3 * 3600000); // BRT = UTC-3
-    const h   = brt.getUTCHours() + brt.getUTCMinutes() / 60;
-    return LIQUIDITY_WINDOWS.some(w => h >= w.open && h < w.close);
-}
-
-function getLiquidityInfo() {
-    const brt     = new Date(Date.now() - 3 * 3600000);
-    const h       = brt.getUTCHours() + brt.getUTCMinutes() / 60;
-    const active  = LIQUIDITY_WINDOWS.filter(w => h >= w.open && h < w.close);
-    const overlap = active.length === 2;
-    if (active.length === 0) {
-        const next = LIQUIDITY_WINDOWS.find(w => h < w.open) || LIQUIDITY_WINDOWS[0];
-        return { open: false, label: `Fechado — abre ${next.name} às ${next.open}h BRT`, overlap: false };
-    }
-    const label = overlap
-        ? '🟡 Londres + NY (janela de ouro)'
-        : `🟢 ${active[0].name} aberta`;
-    return { open: true, label, overlap };
-}
-
-function updateLiquidityStatus() {
-    const el = document.getElementById('liquidity-status');
-    if (!el) return;
-    const info = getLiquidityInfo();
-    const color = info.open ? (info.overlap ? 'var(--yellow)' : 'var(--green)') : 'var(--red)';
-    el.innerHTML = `<span style="color:${color}">${info.label}</span>`;
-    const row = document.getElementById('adf-liquidity');
-    if (row) row.classList.toggle('active', STATE.settings.useLiquidity && info.open);
-}
-
-// ── F2. FILTRO DE NOTÍCIAS ─────────────────────────────────
-// Usa ForexFactory RSS via proxy público — bloqueia ±30min de High Impact
-const NEWS_BLOCK_MIN = 30; // minutos de bloqueio antes/depois do evento
-
-async function fetchEconomicNews() {
-    const now = Date.now();
-    if (now - STATE.newsLastFetch < 15 * 60 * 1000) return; // cache 15min
-    STATE.newsLastFetch = now;
-
-    const el = document.getElementById('news-status');
-    if (el) el.innerHTML = '<span style="color:var(--yellow)">⏳ Carregando...</span>';
-
-    try {
-        // ForexFactory RSS via allorigins proxy (evita CORS)
-        const url  = 'https://api.allorigins.win/get?url=' + encodeURIComponent('https://nfs.faireconomy.media/ff_calendar_thisweek.json');
-        const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
-        const data = await resp.json();
-        const events = JSON.parse(data.contents);
-
-        // Filtra apenas eventos de alto impacto (High) hoje
-        const today = new Date().toISOString().slice(0, 10);
-        STATE.newsCache = events.filter(e =>
-            e.impact === 'High' && e.date && e.date.startsWith(today)
-        ).map(e => ({
-            title:    e.title,
-            currency: e.country,
-            time:     e.date, // ISO string
+        // Protocolo real da IQ Option: "authenticate" com request_id único
+        const reqId = `${Date.now()}_${Math.floor(Math.random()*1000000)}`;
+        STATE.ws.send(JSON.stringify({
+            name: "authenticate",
+            request_id: reqId,
+            local_time: Date.now(),
+            msg: {
+                ssid: STATE.ssid,
+                protocol: 3,
+                session_id: "",
+                client_session_id: ""
+            }
         }));
 
-        updateNewsStatus();
-    } catch (err) {
-        if (el) el.innerHTML = '<span style="color:var(--text-dim)">Sem dados (usando só análise técnica)</span>';
-    }
-}
-
-function isNewsBlocked(pair) {
-    if (!STATE.settings.useNews || STATE.newsCache.length === 0) return false;
-    const now    = Date.now();
-    const block  = NEWS_BLOCK_MIN * 60 * 1000;
-    const currencies = pair.replace('/', '_').split('_'); // ['EUR','USD']
-
-    return STATE.newsCache.some(ev => {
-        const evTime = new Date(ev.time).getTime();
-        const diff   = Math.abs(now - evTime);
-        return diff <= block && currencies.includes(ev.currency);
-    });
-}
-
-function updateNewsStatus() {
-    const el = document.getElementById('news-status');
-    if (!el) return;
-    if (STATE.newsCache.length === 0) {
-        el.innerHTML = '<span style="color:var(--text-dim)">Nenhum evento High Impact hoje</span>';
-        return;
-    }
-    const now   = Date.now();
-    const block = NEWS_BLOCK_MIN * 60 * 1000;
-    const lines = STATE.newsCache.map(ev => {
-        const evTime  = new Date(ev.time).getTime();
-        const diff    = now - evTime;
-        const blocked = Math.abs(diff) <= block;
-        const timeStr = new Date(ev.time).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
-        const color   = blocked ? 'var(--red)' : 'var(--text-dim)';
-        const icon    = blocked ? '🔴' : '⚪';
-        return `<span style="color:${color}">${icon} ${timeStr} ${ev.currency} — ${ev.title}</span>`;
-    });
-    el.innerHTML = lines.join('<br>');
-}
-
-// ── F3. CONFLUÊNCIA MULTI-TF ───────────────────────────────
-// Guarda última direção por par+TF — sinal só dispara se M5 e M10 concordam
-const multiTFSignals = {}; // { 'EUR/USD_M5': 'COMPRA', 'EUR/USD_M10': 'COMPRA' }
-
-// ── F3. CONFLUÊNCIA MULTI-TF (CORRIGIDA) ──────────────────
-// Lógica: M10 (ou TF maior) define a TENDÊNCIA macro via MM200 e MACD
-//         M5  (ou TF menor) dá o GATILHO via Stoch RSI
-// Sinal só é válido quando os dois concordam
-
-const multiTFTrend = {}; // { 'EUR/USD_M10': 'bull'|'bear'|null }
-
-function registerMultiTFDirection(pair, tf, direction) {
-    // Registra apenas para exibição no status
-    multiTFSignals[`${pair}_${tf}`] = direction;
-    updateMultiTFStatus(pair);
-}
-
-function checkMultiTFConfluence(pair, direction, tf) {
-    if (!STATE.settings.useMultiTF) return true;
-
-    const tfs = Array.from(STATE.selectedTFs).sort((a, b) =>
-        parseInt(a.replace('M','')) - parseInt(b.replace('M',''))
-    );
-
-    // ── Regra especial: M1 sempre exige que M5 concorde ──────
-    // Independente do Multi-TF estar ativado ou não,
-    // M1 é muito ruidoso sozinho — M5 funciona como filtro obrigatório.
-    if (tf === 'M1') {
-        const m5Signal = multiTFSignals[`${pair}_M5`];
-        if (m5Signal && m5Signal !== direction) return false; // M5 discorda → bloqueia
-        // Se M5 ainda não tem sinal, deixa passar (evita travamento no início)
-        return true;
-    }
-
-    if (tfs.length < 2) return true;
-
-    // TF maior = tendência, TF menor = gatilho
-    const triggerTF = tfs[0];
-    const trendTF   = tfs[tfs.length - 1];
-
-    if (tf !== triggerTF) return true;
-
-    const hist = STATE.marketData[pair];
-    if (!hist || hist.length < 30) return true;
-    const cls  = closes(hist);
-    const macd = calculateMACD(cls, 21, 34, 9);
-
-    // Usa apenas MACD para definir tendência macro (MM200 removido em v10.15)
-    let trendDir = null;
-    if (macd) {
-        if (macd.trend === 'bullish') trendDir = 'COMPRA';
-        if (macd.trend === 'bearish') trendDir = 'VENDA';
-        // crossover = virada em andamento — aceita ambas as direções
-        if (macd.crossover) trendDir = null;
-    }
-
-    multiTFTrend[`${pair}_${trendTF}`] = trendDir;
-    updateMultiTFStatus(pair);
-
-    if (!trendDir) return false;
-    return direction === trendDir;
-}
-
-function updateMultiTFStatus(pair) {
-    const el  = document.getElementById('multitf-status');
-    if (!el) return;
-    const tfs = Array.from(STATE.selectedTFs).sort((a, b) =>
-        parseInt(a.replace('M','')) - parseInt(b.replace('M',''))
-    );
-    if (tfs.length < 2) { el.innerHTML = '<span style="color:var(--text-dim)">Selecione 2+ TFs</span>'; return; }
-
-    const triggerTF = tfs[0];
-    const trendTF   = tfs[tfs.length - 1];
-    const trend     = multiTFTrend[`${pair}_${trendTF}`];
-    const trigger   = multiTFSignals[`${pair}_${triggerTF}`];
-
-    const tColor = trend === 'COMPRA' ? 'var(--green)' : trend === 'VENDA' ? 'var(--red)' : 'var(--text-dim)';
-    const gColor = trigger === 'COMPRA' ? 'var(--green)' : trigger === 'VENDA' ? 'var(--red)' : 'var(--text-dim)';
-    const aligned = trend && trigger && trend === trigger;
-
-    el.innerHTML = `<span style="color:${tColor}">${trendTF} tendência: ${trend||'—'}</span>
-        &nbsp;|&nbsp; <span style="color:${gColor}">${triggerTF} gatilho: ${trigger||'—'}</span>
-        ${aligned ? '<span style="color:var(--green)"> ✓ Alinhado</span>' : '<span style="color:var(--red)"> ✗ Divergente</span>'}`;
-}
-
-// ── F4. FILTRO DE VOLATILIDADE (ATR) ──────────────────────
-// ATR = média das amplitudes das últimas N velas
-// Bloqueia se ATR atual > atrMultiplier × ATR médio dos últimos 20 períodos
-
-// ── 2d. ATR REAL (True Range com OHLC) ────────────────────
-/**
- * ATR correto: True Range = max(H-L, |H-Cprev|, |L-Cprev|)
- * Retorna { atr, current, ratio } onde ratio = ATR_atual / ATR_médio
- */
-function calculateATR(hist, period = 14) {
-    if (hist.length < period + 1) return null;
-    const trs = [];
-    for (let i = hist.length - period - 1; i < hist.length - 1; i++) {
-        const cur  = hist[i + 1];
-        const prev = hist[i];
-        const tr   = Math.max(
-            cur.h - cur.l,
-            Math.abs(cur.h - prev.c),
-            Math.abs(cur.l - prev.c)
-        );
-        trs.push(tr);
-    }
-    const atr     = trs.reduce((a, b) => a + b, 0) / trs.length;
-    const lastTR  = trs[trs.length - 1];
-    return { atr, current: lastTR, ratio: atr > 0 ? lastTR / atr : 1 };
-}
-
-/**
- * Agrega ticks brutos do WebSocket em velas OHLC pelo TF solicitado
- * Mantém candle corrente aberto até virar o período
- */
-// ── BOLLINGER BANDS (v10.15) ───────────────────────────────
-// Confirma que o extremo do Stoch coincide com extremo de preço
-// Retorna: { upper, lower, mid, touchUpper, touchLower }
-// touchUpper = preço atual >= banda superior (zona de VENDA)
-// touchLower = preço atual <= banda inferior (zona de COMPRA)
-function calculateBollingerBands(hist, period = 20, stdDevMult = 2) {
-    if (hist.length < period) return null;
-    const slice  = hist.slice(-period);
-    const closes = slice.map(c => c.c);
-    const mid    = closes.reduce((a, b) => a + b, 0) / period;
-    const variance = closes.reduce((sum, v) => sum + Math.pow(v - mid, 2), 0) / period;
-    const sd     = Math.sqrt(variance);
-    const upper  = mid + stdDevMult * sd;
-    const lower  = mid - stdDevMult * sd;
-    const last   = hist[hist.length - 1].c;
-    return { upper, lower, mid, sd,
-             touchUpper: last >= upper,
-             touchLower: last <= lower,
-             pctB: sd > 0 ? (last - lower) / (upper - lower) : 0.5 };
-}
-
-function buildOHLCCandle(hist, price, tfMin) {
-    const now   = Date.now();
-    const msPerCandle = tfMin * 60 * 1000;
-    const candleTs    = Math.floor(now / msPerCandle) * msPerCandle;
-
-    if (hist.length > 0 && hist[hist.length - 1].t === candleTs) {
-        // Atualiza candle corrente
-        const c = hist[hist.length - 1];
-        c.h = Math.max(c.h, price);
-        c.l = Math.min(c.l, price);
-        c.c = price;
-    } else {
-        // Abre novo candle
-        hist.push({ o: price, h: price, l: price, c: price, t: candleTs });
-        if (hist.length > 300) hist.shift();
-    }
-}
-
-
-function isVolatilityBlocked(pair) {
-    if (!STATE.settings.useVolatility) return false;
-    const hist = STATE.marketData[pair];
-    if (!hist || hist.length < 30) return false;
-    const atrData = calculateATR(hist, 14);
-    if (!atrData) return false;
-    return atrData.ratio > STATE.settings.atrMultiplier;
-}
-
-// ── FILTRO ATR XAUUSD (v10.15) ─────────────────────────────
-// Dado do CSV: XAUUSD em expansão (variação grande) = 31.3% WIN
-// O ouro em movimento forte vai contra a reversão — sempre bloqueado nesse regime
-// Funciona independente do toggle de Volatilidade geral
-function isXauExpansionBlocked(pair) {
-    if (pair !== 'XAUUSD') return false;
-    const hist = STATE.marketData[pair];
-    if (!hist || hist.length < 20) return false;
-    const atrData = calculateATR(hist, 14);
-    if (!atrData) return false;
-    // Bloqueia se ATR atual > 1.3× a média — limiar mais sensível que o filtro geral (1.5×)
-    // XAUUSD precisa de limiar menor pois expansão aqui é particularmente destrutiva
-    return atrData.ratio > 1.3;
-}
-
-function updateVolatilityStatus(pair) {
-    const el = document.getElementById('volatility-status');
-    if (!el) return;
-    const hist = STATE.marketData[pair];
-    if (!hist || hist.length < 30) { el.innerHTML = '—'; return; }
-    const atrData = calculateATR(hist, 14);
-    if (!atrData) return;
-    const blocked = atrData.ratio > STATE.settings.atrMultiplier;
-    const color   = blocked ? 'var(--red)' : 'var(--green)';
-    const label   = blocked ? '⚡ Alta volatilidade — bloqueado' : '✓ Volatilidade normal';
-    el.innerHTML  = `<span style="color:${color}">${label} (${atrData.ratio.toFixed(2)}×)</span>`;
-}
-
-// ── F5. BACKTESTING ACUMULADO ──────────────────────────────
-// Acumula Win/Loss por par+TF e bloqueia combinações com <50% acerto
-
-function registerBacktestResult(pair, tf, win) {
-    const key = `${pair}_${tf}`;
-    if (!STATE.backtestData[key]) STATE.backtestData[key] = { wins: 0, losses: 0 };
-    win ? STATE.backtestData[key].wins++ : STATE.backtestData[key].losses++;
-    updateBacktestStatus();
-    renderPerformancePanel(); // atualiza painel PERF em tempo real
-    try { localStorage.setItem('op245c_backtest', JSON.stringify(STATE.backtestData)); } catch(e) {}
-}
-
-function getBacktestRate(pair, tf) {
-    const key  = `${pair}_${tf}`;
-    const data = STATE.backtestData[key];
-    if (!data || (data.wins + data.losses) < 5) return null; // precisa de mínimo 5 amostras
-    return data.wins / (data.wins + data.losses);
-}
-
-function isBacktestBlocked(pair, tf) {
-    if (!STATE.settings.useBacktest) return false;
-    const rate = getBacktestRate(pair, tf);
-    if (rate === null) return false; // amostras insuficientes → não bloqueia
-    return rate < 0.50;
-}
-
-function updateBacktestStatus() {
-    const el = document.getElementById('backtest-status');
-    if (!el) return;
-    const keys = Object.keys(STATE.backtestData);
-    if (keys.length === 0) { el.innerHTML = '<span style="color:var(--text-dim)">Sem dados ainda</span>'; return; }
-    const lines = keys.map(key => {
-        const d      = STATE.backtestData[key];
-        const total  = d.wins + d.losses;
-        const rate   = total > 0 ? (d.wins / total * 100).toFixed(0) : 0;
-        const color  = rate >= 60 ? 'var(--green)' : rate >= 50 ? 'var(--yellow)' : 'var(--red)';
-        const icon   = rate >= 60 ? '✓' : rate >= 50 ? '~' : '✗';
-        return `<span style="color:${color}">${icon} ${key}: ${rate}% (${d.wins}W/${d.losses}L)</span>`;
-    });
-    el.innerHTML = lines.join('<br>');
-}
-
-function loadBacktestFromStorage() {
-    try {
-        const saved = localStorage.getItem('op245c_backtest');
-        if (saved) { STATE.backtestData = JSON.parse(saved); updateBacktestStatus(); }
-    } catch(e) {}
-}
-
-function updateAdvFilterUI() {
-    updateLiquidityStatus();
-    updateNewsStatus();
-    updateBacktestStatus();
-}
-
-
-
-// ── COUNTDOWN NAS LINHAS PENDENTES ────────────────────────
-function updateCountdowns() {
-    const now    = new Date();
-    const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-    STATE.pendingSignalsList.forEach(sig => {
-        if (sig.checked) return;
-        const row  = document.getElementById(sig.id);
-        if (!row) return;
-        const cell = row.querySelector('.status-cell');
-        if (!cell) return;
-        const parts     = sig.candleTime.split(':');
-        const targetSec = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
-        let diffSec     = targetSec - nowSec;
-        if (diffSec < -43200) diffSec += 86400;
-        if (diffSec > 0) {
-            const m  = Math.floor(diffSec / 60);
-            const s  = diffSec % 60;
-            cell.innerHTML = `<span class="status-pend">⏳ ${m}:${s.toString().padStart(2,'0')}</span>`;
-        }
-    });
-}
-
-// ── PAINEL DE PERFORMANCE ─────────────────────────────────
-let perfFilterTF = 'ALL'; // 'ALL' | 'M1' | 'M5' | 'M10'
-
-function renderPerformancePanel() {
-    const container = document.getElementById('perf-content');
-    if (!container) return;
-
-    const data = STATE.backtestData;
-    const keys = Object.keys(data);
-
-    // Filtros de TF
-    const tfBtns = ['ALL','M1','M5','M10'].map(tf => {
-        const active = tf === perfFilterTF;
-        return `<button onclick="perfFilterTF='${tf}';renderPerformancePanel()"
-            style="padding:4px 10px;font-size:11px;font-family:var(--font-mono);border-radius:3px;cursor:pointer;
-            background:${active?'var(--blue)':'var(--bg-card)'};
-            border:1px solid ${active?'var(--blue)':'var(--border2)'};
-            color:${active?'#fff':'var(--text-mid)'};">${tf}</button>`;
-    }).join('');
-
-    if (keys.length === 0) {
-        container.innerHTML = `
-            <div style="display:flex;gap:6px;margin-bottom:12px;">${tfBtns}</div>
-            <div style="text-align:center;padding:40px;color:var(--text-dim);font-size:13px;">
-            Nenhum resultado registrado ainda.<br>Os dados aparecem conforme as operações são apuradas.</div>`;
-        return;
-    }
-
-    // Filtra keys pelo TF selecionado
-    const filteredKeys = perfFilterTF === 'ALL'
-        ? keys
-        : keys.filter(k => k.endsWith(`_${perfFilterTF}`));
-
-    // Agrupa por par
-    const byPair = {};
-    filteredKeys.forEach(key => {
-        const parts = key.split('_');
-        const tf    = parts[parts.length - 1];
-        const pair  = parts.slice(0, -1).join('_');
-        if (!byPair[pair]) byPair[pair] = {};
-        byPair[pair][tf] = data[key];
-    });
-
-    // ── Bloco de confluência M1/M5/M10 ──
-    const tfsOrder = ['M1','M5','M10'];
-    const allPairs = [...new Set(keys.map(k => {
-        const p = k.split('_'); return p.slice(0,-1).join('_');
-    }))].sort();
-
-    let confluenceHtml = '';
-    if (perfFilterTF === 'ALL') {
-        confluenceHtml = `<div style="margin-bottom:16px;">
-            <div style="font-size:11px;color:var(--text-dim);font-family:var(--font-mono);margin-bottom:8px;letter-spacing:1px;">CONFLUÊNCIA TF — M1 apoiado em M5 · M5 apoiado em M10</div>
-            <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:11px;">
-            <thead><tr>
-                <th style="text-align:left;padding:4px 6px;color:var(--text-dim);border-bottom:1px solid var(--border2);">Par</th>
-                <th style="text-align:center;padding:4px 6px;color:var(--text-dim);border-bottom:1px solid var(--border2);">M1</th>
-                <th style="text-align:center;padding:4px 6px;color:var(--text-dim);border-bottom:1px solid var(--border2);">M5</th>
-                <th style="text-align:center;padding:4px 6px;color:var(--text-dim);border-bottom:1px solid var(--border2);">M10</th>
-                <th style="text-align:center;padding:4px 6px;color:var(--text-dim);border-bottom:1px solid var(--border2);">Apoio</th>
-            </tr></thead><tbody>`;
-
-        allPairs.forEach(pair => {
-            const cells = tfsOrder.map(tf => {
-                const d = data[`${pair}_${tf}`];
-                if (!d || (d.wins + d.losses) === 0) return { html: '<td style="text-align:center;padding:4px 6px;color:var(--text-dim);">—</td>', rate: null };
-                const total = d.wins + d.losses;
-                const rate  = d.wins / total * 100;
-                const color = rate >= 60 ? 'var(--green)' : rate >= 50 ? 'var(--yellow)' : 'var(--red)';
-                return {
-                    html: `<td style="text-align:center;padding:4px 6px;font-weight:700;color:${color};">${rate.toFixed(0)}%<span style="color:var(--text-dim);font-weight:400;font-size:10px;"> ${d.wins}W/${d.losses}L</span></td>`,
-                    rate
-                };
-            });
-            // Apoio: M1 apoiado em M5, M5 apoiado em M10
-            const rM1  = cells[0].rate, rM5 = cells[1].rate, rM10 = cells[2].rate;
-            let apoio = '—';
-            if (rM5 !== null && rM10 !== null) {
-                const m5ok  = rM5  >= 50;
-                const m10ok = rM10 >= 50;
-                apoio = (m5ok && m10ok) ? '<span style="color:var(--green)">✓ OK</span>'
-                      : (!m5ok && !m10ok) ? '<span style="color:var(--red)">✗ Fraco</span>'
-                      : '<span style="color:var(--yellow)">⚠ Parcial</span>';
+        // Heartbeat via timeSync a cada 10 segundos
+        STATE.pingInterval = setInterval(() => {
+            if (STATE.ws && STATE.ws.readyState === WebSocket.OPEN) {
+                STATE.ws.send(JSON.stringify({ name: "timeSync", msg: Date.now() }));
             }
-
-            confluenceHtml += `<tr style="border-bottom:1px solid var(--border);">
-                <td style="padding:5px 6px;color:var(--text-main);font-weight:700;">${pair}</td>
-                ${cells.map(c => c.html).join('')}
-                <td style="text-align:center;padding:4px 6px;">${apoio}</td>
-            </tr>`;
-        });
-        confluenceHtml += '</tbody></table></div></div>';
-    }
-
-    // ── Taxa por Par/TF (barras) ──
-    let barsHtml = `<div style="margin-bottom:16px;">
-        <div style="font-size:11px;color:var(--text-dim);font-family:var(--font-mono);margin-bottom:8px;letter-spacing:1px;">TAXA POR PAR${perfFilterTF !== 'ALL' ? ' — ' + perfFilterTF : ''}</div>`;
-
-    Object.keys(byPair).sort().forEach(pair => {
-        const tfs = perfFilterTF === 'ALL' ? Object.keys(byPair[pair]) : [perfFilterTF];
-        tfs.forEach(tf => {
-            const d = byPair[pair][tf];
-            if (!d) return;
-            const total = d.wins + d.losses;
-            if (total === 0) return;
-            const rate  = d.wins / total * 100;
-            const color = rate >= 65 ? 'var(--green)' : rate >= 50 ? 'var(--yellow)' : 'var(--red)';
-            barsHtml += `<div style="margin-bottom:8px;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
-                    <span style="font-size:12px;color:var(--text-main);font-family:var(--font-mono);">${pair} <span style="color:var(--blue)">${tf}</span></span>
-                    <span style="font-size:12px;font-weight:700;color:${color};font-family:var(--font-mono);">${rate.toFixed(0)}% <span style="color:var(--text-dim);font-weight:400;">(${d.wins}W/${d.losses}L)</span></span>
-                </div>
-                <div style="height:4px;background:var(--border2);border-radius:2px;">
-                    <div style="height:4px;width:${Math.min(rate,100).toFixed(0)}%;background:${color};border-radius:2px;"></div>
-                </div>
-            </div>`;
-        });
-    });
-    barsHtml += '</div>';
-
-    // ── Resumo geral ──
-    const totalW = filteredKeys.reduce((a, k) => a + data[k].wins,   0);
-    const totalL = filteredKeys.reduce((a, k) => a + data[k].losses, 0);
-    const total  = totalW + totalL;
-    const gRate  = total > 0 ? totalW / total * 100 : null;
-    const gColor = gRate === null ? 'var(--text-dim)' : gRate >= 65 ? 'var(--green)' : gRate >= 50 ? 'var(--yellow)' : 'var(--red)';
-
-    const summaryHtml = `<div style="padding:12px;background:var(--bg-card);border-radius:4px;border:1px solid var(--border2);text-align:center;">
-        <div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;font-family:var(--font-mono);">TAXA GERAL${perfFilterTF !== 'ALL' ? ' — '+perfFilterTF : ''}</div>
-        <div style="font-size:32px;font-weight:700;color:${gColor};font-family:var(--font-mono);">${gRate !== null ? gRate.toFixed(1)+'%' : '—'}</div>
-        <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">${totalW}W &nbsp;/&nbsp; ${totalL}L &nbsp;/&nbsp; ${total} total</div>
-        <button onclick="if(confirm('Apagar histórico?')){STATE.backtestData={};try{localStorage.removeItem('op245c_backtest')}catch(e){}renderPerformancePanel();updateBacktestStatus();}"
-            style="margin-top:10px;background:transparent;border:1px solid var(--border2);color:var(--text-dim);padding:4px 12px;border-radius:3px;font-size:11px;cursor:pointer;">
-            Resetar histórico
-        </button>
-    </div>`;
-
-    container.innerHTML = `
-        <div style="display:flex;gap:6px;margin-bottom:14px;">${tfBtns}</div>
-        ${confluenceHtml}
-        ${barsHtml}
-        ${summaryHtml}`;
-}
-
-function switchTab(tab) {
-    ['sinais','log','perf'].forEach(t => {
-        const panel = document.getElementById(`panel-${t}`);
-        const btn   = document.getElementById(`tab-${t}`);
-        if (!panel || !btn) return;
-        const active = t === tab;
-        panel.style.display    = active ? '' : 'none';
-        btn.style.background   = active ? 'var(--blue)' : 'var(--bg-card)';
-        btn.style.color        = active ? '#fff' : 'var(--text-mid)';
-        btn.style.border       = active ? 'none' : '1px solid var(--border2)';
-        btn.style.fontWeight   = active ? '600' : '400';
-    });
-    if (tab === 'perf') renderPerformancePanel();
-}
-
-function addToLog(pair, type, tf, velaType, candleTime, price, stochVal, macd, mm200, source) {
-    const entry = {
-        n:              STATE.signalLog.length + 1,
-        hora:           new Date().toLocaleTimeString('pt-BR'),
-        pair, type, tf,
-        entrada:        velaType === 'Atual' ? 'Atual' : candleTime,
-        precoSinal:     price,
-        precoAbertura:  '—',   // preenchido pelo checkResults
-        precoResultado: '—',   // preenchido pelo checkResults
-        resultado:      '—',   // WIN / LOSS
-        varTotal:       '—',   // variação precoSinal → precoResultado
-        varAbertura:    '—',   // variação precoAbertura → precoResultado
-        stoch:          stochVal,
-        macd:           macd  ? (macd.trend  === 'bullish' ? '↑' : macd.trend === 'bearish' ? '↓' : '—') : '—',
-        mm200:          mm200 ? (mm200.trend === 'above'   ? '▲' : mm200.trend === 'below'  ? '▼' : '≈') : '—',
-        source,
+        }, 10000);
     };
-    STATE.signalLog.unshift(entry);
 
-    const tbody = document.getElementById('log-rows');
-    const empty = document.getElementById('log-empty');
-    const count = document.getElementById('log-count');
-    if (!tbody) return;
+    STATE.ws.onmessage = (evt) => {
+        let data;
+        try { data = JSON.parse(evt.data); } catch { return; }
 
-    if (empty) empty.style.display = 'none';
-    if (count) count.textContent = STATE.signalLog.length;
+        // Autenticação confirmada
+        if (data.name === "authenticated" && data.msg === true) {
+            log("Autenticado com sucesso! ✅ Ativando monitoramento...", '#00ff88');
+            updateStatus('online', 'ENGINE ATIVA');
 
-    const macdColor  = entry.macd === '↑' ? 'var(--green)' : entry.macd === '↓' ? 'var(--red)' : 'var(--text-dim)';
-    const mm200Color = entry.mm200 === '▲' ? 'var(--green)' : entry.mm200 === '▼' ? 'var(--red)' : 'var(--text-dim)';
-    const logRow = document.createElement('tr');
-    logRow.id = `log-row-${entry.n}`;
-    logRow.innerHTML = `
-        <td style="color:var(--text-dim);font-family:var(--font-mono)">${entry.n}</td>
-        <td style="color:var(--text-mid);font-family:var(--font-mono)">${entry.hora}</td>
-        <td><b style="color:var(--text-main)">${entry.pair}</b></td>
-        <td><span class="${type==='COMPRA'?'badge-buy':'badge-sell'}">${entry.type}</span></td>
-        <td><span class="badge-tf">${entry.tf}</span></td>
-        <td style="font-family:var(--font-mono);color:white">${entry.entrada}</td>
-        <td style="font-family:var(--font-mono);color:var(--text-mid)">${entry.precoSinal}</td>
-        <td class="log-open-${entry.n}" style="font-family:var(--font-mono);color:var(--text-dim)">—</td>
-        <td class="log-result-price-${entry.n}" style="font-family:var(--font-mono);color:var(--text-dim)">—</td>
-        <td class="log-result-${entry.n}" style="color:var(--text-dim)">—</td>
-        <td style="color:var(--text-dim)" class="log-var-${entry.n}">—</td>
-        <td style="color:var(--text-mid)">${entry.stoch}</td>
-        <td style="color:${macdColor}">${entry.macd}</td>
-        <td style="color:${mm200Color}">${entry.mm200}</td>
-        <td><span class="badge-src ${source==='real'?'real':'sim'}">${source==='real'?'LIVE':'SIM'}</span></td>`;
-    tbody.insertBefore(logRow, tbody.firstChild);
-    if (tbody.children.length > 200) tbody.removeChild(tbody.lastChild);
+            document.getElementById('btn-connect').textContent = 'CONECTADO';
+            document.getElementById('btn-connect').style.background = 'var(--green)';
+
+            // Subscrever candles de 1 minuto para cada ativo
+            STATE.pairs.forEach((pair, i) => {
+                setTimeout(() => {
+                    STATE.ws.send(JSON.stringify({
+                        name: "sendMessage",
+                        request_id: `s_${i}`,
+                        local_time: Date.now(),
+                        msg: {
+                            name: "subscribeMessage",
+                            version: "1.0",
+                            body: {
+                                name: "candle-generated",
+                                params: {
+                                    routingFilters: {
+                                        active_id: pair.id,
+                                        size: 1
+                                    }
+                                }
+                            }
+                        }
+                    }));
+                    log(`Subscrito: ${pair.symbol} (id ${pair.id})`);
+                }, i * 200);
+            });
+        }
+
+        // Autenticação falhou
+        if (data.name === "authenticated" && data.msg === false) {
+            log("SSID inválido ou expirado. Gere um novo.", '#ff3355');
+            updateStatus('offline', 'SSID INVÁLIDO');
+            document.getElementById('btn-connect').disabled = false;
+            document.getElementById('btn-connect').textContent = 'CONECTAR';
+            document.getElementById('btn-connect').style.background = 'var(--primary)';
+            document.getElementById('how-to-box').style.display = 'flex';
+            return;
+        }
+
+        // Dados de candle via sendMessage/subscribeMessage
+        if (data.name === "sendMessage" && data.msg?.name === "candle-generated") {
+            processSignal(data.msg.body || data.msg.msg || data.msg);
+        }
+
+        // Formato alternativo direto
+        if (data.name === "candle-generated") {
+            processSignal(data.msg);
+        }
+
+        // Profile (fallback de autenticação legado)
+        if (data.name === "profile") {
+            const nome = data.msg?.name || data.msg?.nick_name || "Usuário";
+            log(`Perfil recebido: ${nome} ✅`, '#00ff88');
+            updateStatus('online', 'ENGINE ATIVA');
+            document.getElementById('btn-connect').textContent = 'CONECTADO';
+            document.getElementById('btn-connect').style.background = 'var(--green)';
+        }
+
+        if (data.name === "timeSync") { return; }
+
+        if (data.name === "error") {
+            log(`Erro do servidor: ${JSON.stringify(data.msg)}`, '#ff3355');
+        }
+    };
+
+    STATE.ws.onerror = (e) => {
+        log("Erro de rede — verifique SSID ou conexão", '#ff3355');
+        updateStatus('offline', 'FALHA');
+    };
+
+    STATE.ws.onclose = (e) => {
+        log(`Conexão encerrada (código ${e.code}). Reconectando em 5s...`, '#ffcc00');
+        updateStatus('offline', 'RECONECTANDO...');
+        clearInterval(STATE.pingInterval);
+        STATE.reconnectTimer = setTimeout(connect, 5000);
+    };
 }
 
-function clearLog() {
-    STATE.signalLog = [];
-    document.getElementById('log-rows').innerHTML = '';
-    const empty = document.getElementById('log-empty');
-    const count = document.getElementById('log-count');
-    if (empty) empty.style.display = '';
-    if (count) count.textContent = '0';
+function processSignal(msg) {
+    if (!msg || msg.active_id === undefined) return;
+
+    const pair = STATE.pairs.find(p => p.id === msg.active_id);
+    if (!pair) return;
+
+    const open  = parseFloat(msg.open);
+    const close = parseFloat(msg.close);
+    const high  = parseFloat(msg.max  || msg.high);
+    const low   = parseFloat(msg.min  || msg.low);
+    const vol   = parseFloat(msg.volume || 0);
+
+    if (!open || !close) return;
+
+    // Direção pelo corpo da vela
+    const direction = close > open ? 'CALL' : 'PUT';
+
+    // Score baseado em força da vela (não aleatório)
+    const body  = Math.abs(close - open);
+    const wick  = (high - low) || 0.0001;
+    const ratio = body / wick; // 0 a 1
+    const score = Math.min(10, Math.max(6, Math.round(ratio * 10 + 5)));
+
+    if (score >= 8) {
+        renderSignal(pair.symbol, direction, score, msg);
+    }
 }
 
-function exportLog() {
-    if (STATE.signalLog.length === 0) { showErrorToast('Nenhum sinal para exportar'); return; }
-    const header = '#,Hora,Par,Sinal,TF,Entrada,P.Sinal,P.Abertura,P.Resultado,Resultado,Variação,Var.Abertura,Stoch RSI,MACD,MM200,Fonte\n';
-    const rows   = [...STATE.signalLog].reverse().map(e =>
-        `${e.n},${e.hora},${e.pair},${e.type},${e.tf},${e.entrada},${e.precoSinal},${e.precoAbertura ?? '—'},${e.precoResultado ?? '—'},${e.resultado ?? '—'},${e.varTotal ?? '—'},${e.varAbertura ?? '—'},${e.stoch},${e.macd},${e.mm200},${e.source}`
-    ).join('\n');
-    const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = `op245c-log-${new Date().toISOString().slice(0,10)}.csv`; a.click();
-    URL.revokeObjectURL(url);
-}
+function renderSignal(symbol, side, score, raw) {
+    // Remove a mensagem "vazia"
+    const empty = document.getElementById('empty-msg');
+    if (empty) empty.remove();
 
-function init() {
-    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.add('hidden');
+    const list   = document.getElementById('signals-list');
+    const cardId = `card-${symbol.replace('/', '')}`;
+    let card     = document.getElementById(cardId);
 
-    // Limpa entradas vazias do localStorage que podem causar conflito
-    try {
-        if (!localStorage.getItem('op245_tg_token')  || localStorage.getItem('op245_tg_token').length  < 10) localStorage.removeItem('op245_tg_token');
-        if (!localStorage.getItem('op245_tg_chatid') || localStorage.getItem('op245_tg_chatid').length < 3)  localStorage.removeItem('op245_tg_chatid');
-    } catch(e) {}
-
-    renderAssetGroups();
-
-    updateStatHeader();
-    updatePresets();
-
-    setInterval(updateClock, 1000);
-    setInterval(checkPendingTimeouts, 1000);
-    setInterval(checkResults, 1000);
-    setInterval(updateCountdowns, 1000);      // countdown nas linhas pendentes
-    setInterval(updateOTCStatusBar, 30000);
-    setInterval(updateMarketStatusPanel, 60000);
-    setInterval(updateLiquidityStatus, 60000);
-    setInterval(updateNewsStatus, 60000);
-    setInterval(() => { if (STATE.settings.useNews) fetchEconomicNews(); }, 15 * 60 * 1000);
-
-    loadBacktestFromStorage();
-    updateAdvFilterUI();
-    updateLiquidityStatus(); // atualiza painel a cada 1min
-    updateOTCStatusBar();
-    updateMarketStatusPanel(); // renderiza imediatamente na abertura
-
-    // Carrega chave salva do localStorage (prioridade) ou usa chave embutida
-    let savedKey = '';
-    try { savedKey = localStorage.getItem('op245_apikey') || ''; } catch(e) {}
-
-    if (savedKey.length > 10) {
-        STATE.apiKey = savedKey;
-        // Preenche o campo visualmente se estiver visível
-        const field = document.getElementById('cfg-apikey');
-        if (field) field.value = savedKey;
-    } else {
-        STATE.apiKey = _decodeKey();
+    if (!card) {
+        card = document.createElement('div');
+        card.id = cardId;
+        list.prepend(card);
+        STATE.signalCount++;
     }
 
-    // Carrega configurações Telegram — localStorage tem prioridade, mas só se não estiver vazio
-    try {
-        const savedToken  = localStorage.getItem('op245_tg_token');
-        const savedChatId = localStorage.getItem('op245_tg_chatid');
-        const tgToken  = (savedToken  && savedToken.length  > 10) ? savedToken  : STATE.telegram.token;
-        const tgChatId = (savedChatId && savedChatId.length > 3)  ? savedChatId : STATE.telegram.chatId;
-        STATE.telegram.token  = tgToken;
-        STATE.telegram.chatId = tgChatId;
-        // setTimeout garante que o DOM está 100% pronto antes de preencher
-        setTimeout(() => {
-            const tokenField  = document.getElementById('cfg-tg-token');
-            const chatIdField = document.getElementById('cfg-tg-chatid');
-            if (tokenField)  { tokenField.value  = tgToken;  tokenField.dispatchEvent(new Event('input')); }
-            if (chatIdField) { chatIdField.value = tgChatId; chatIdField.dispatchEvent(new Event('input')); }
-            if (tgToken && tgChatId) {
-                document.getElementById('tg-status-dot').style.cssText =
-                    'width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--yellow);box-shadow:0 0 6px var(--yellow)';
-                document.getElementById('tg-status-label').textContent = 'Configurado — ative quando precisar';
-                document.getElementById('tg-status-label').style.color = 'var(--yellow)';
-            }
-        }, 100);
-    } catch(e) {}
+    const time  = new Date().toLocaleTimeString('pt-BR');
+    const color = side === 'CALL' ? 'var(--green)' : 'var(--red)';
+    const arrow = side === 'CALL' ? '▲' : '▼';
 
-    setApiStatus('connecting', 'Conectando à TwelveData...');
-    // Não inicia simulação no boot — tenta API primeiro.
-    // Simulação só é ativada após 10 falhas no WS (ver WS_BACKOFF.maxTries).
-    connectRealData();
-
-    console.log('[OP245-C v10.15] Engine iniciada.');
+    card.className = 'signal-card';
+    card.style.borderLeft = `5px solid ${color}`;
+    card.innerHTML = `
+        <span class="pair">${symbol}</span>
+        <span class="score">${score}/10</span>
+        <div class="direction" style="color:${color}">${arrow} ${side}</div>
+        <div class="time">${time} &nbsp;|&nbsp; O:${parseFloat(raw.open).toFixed(5)} &nbsp;C:${parseFloat(raw.close).toFixed(5)}</div>
+    `;
 }
 
-init();
+function updateStatus(type, text) {
+    document.getElementById('status-dot').className = `dot ${type}`;
+    document.getElementById('status-text').textContent = text;
+}
 </script>
 </body>
 </html>
