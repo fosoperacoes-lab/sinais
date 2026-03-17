@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OP245-C Sinais v10.45 | Engine IQ Option</title>
+    <title>OP245-C Sinais v10.45 | Engine Bullex Final</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;700&display=swap" rel="stylesheet">
@@ -25,7 +25,7 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
+        body { 
             background: var(--bg); color: var(--text); font-family: var(--font-main);
             height: 100vh; overflow: hidden;
             background-image: radial-gradient(circle at 50% -20%, rgba(0,242,255,0.05) 0%, transparent 70%);
@@ -36,19 +36,6 @@
             display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
         }
 
-        .header-left { display: flex; align-items: center; gap: 16px; }
-
-        .badge-iq {
-            background: rgba(0,242,255,0.08);
-            border: 1px solid rgba(0,242,255,0.2);
-            color: var(--primary);
-            font-family: var(--font-mono);
-            font-size: 10px;
-            padding: 3px 8px;
-            border-radius: 4px;
-            letter-spacing: 1px;
-        }
-
         .status-pill {
             background: var(--bg); border: 1px solid var(--border);
             padding: 6px 14px; border-radius: 30px; font-size: 11px;
@@ -56,351 +43,172 @@
         }
 
         .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; transition: 0.3s; }
-        .dot.online { background: var(--green); box-shadow: 0 0 12px var(--green); animation: pulse 2s infinite; }
+        .dot.online { background: var(--green); box-shadow: 0 0 12px var(--green); }
         .dot.yellow { background: var(--yellow); box-shadow: 0 0 12px var(--yellow); }
         .dot.offline { background: var(--red); box-shadow: 0 0 12px var(--red); }
-
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 6px var(--green); }
-            50% { box-shadow: 0 0 16px var(--green); }
-        }
 
         .container { height: calc(100vh - 200px); padding: 20px; overflow-y: auto; }
 
         .auth-panel {
             background: var(--card); border: 1px solid var(--border);
-            padding: 16px 20px; border-radius: 8px; margin: 12px 20px;
+            padding: 20px; border-radius: 8px; margin: 20px;
             display: flex; gap: 12px; align-items: center;
-        }
-
-        .auth-info {
-            font-family: var(--font-mono); font-size: 10px; color: var(--text-dim);
-            white-space: nowrap;
         }
 
         input#ssid-input {
             flex: 1; background: var(--bg); border: 1px solid var(--border);
             color: var(--green); padding: 12px; border-radius: 4px;
             font-family: var(--font-mono); font-size: 13px; outline: none;
-            transition: border-color 0.2s;
         }
-        input#ssid-input:focus { border-color: var(--primary); }
 
         button#btn-connect {
             background: var(--primary); color: #000; border: none;
-            padding: 12px 24px; border-radius: 4px; font-weight: 700;
-            cursor: pointer; font-family: var(--font-mono); font-size: 12px;
-            letter-spacing: 1px; transition: opacity 0.2s;
-            white-space: nowrap;
+            padding: 12px 24px; border-radius: 4px; font-weight: 700; cursor: pointer;
         }
-        button#btn-connect:hover { opacity: 0.85; }
-        button#btn-connect:disabled { opacity: 0.4; cursor: not-allowed; }
-
-        .how-to {
-            margin: 0 20px 8px;
-            background: rgba(255,204,0,0.05);
-            border: 1px solid rgba(255,204,0,0.15);
-            border-radius: 6px;
-            padding: 10px 14px;
-            font-family: var(--font-mono);
-            font-size: 10px;
-            color: var(--yellow);
-            display: flex; align-items: flex-start; gap: 10px;
-        }
-        .how-to-icon { font-size: 14px; flex-shrink: 0; }
-        .how-to-text { line-height: 1.7; }
-        .how-to-text b { color: #fff; }
 
         #debug-terminal {
-            height: 120px; background: #000; border-top: 2px solid var(--border);
+            height: 140px; background: #000; border-top: 2px solid var(--border);
             color: #0f0; font-family: var(--font-mono); font-size: 10px;
             padding: 10px; overflow-y: auto; position: fixed; bottom: 0; width: 100%;
         }
 
         .grid-signals { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-
-        .signal-card {
-            background: var(--card); border: 1px solid var(--border);
-            border-radius: 10px; padding: 15px;
-            animation: fadeIn 0.3s ease;
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-
-        .signal-card .pair { font-weight: 700; font-size: 15px; color: var(--text); }
-        .signal-card .score { float: right; color: var(--primary); font-family: var(--font-mono); font-size: 13px; }
-        .signal-card .direction { margin-top: 8px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 1px; }
-        .signal-card .time { font-size: 10px; color: var(--text-dim); margin-top: 4px; font-family: var(--font-mono); }
-
-        .empty-state {
-            text-align: center; color: var(--text-dim); font-family: var(--font-mono);
-            font-size: 12px; padding: 60px 20px;
-        }
+        .signal-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 15px; }
     </style>
 </head>
 <body>
 
 <header>
-    <div class="header-left">
-        <div style="font-weight: 700; color: var(--primary); letter-spacing: 2px;">
-            OP245-C <span style="font-weight: 400; font-size: 10px; color: var(--text-dim);">v10.45 ENGINE</span>
-        </div>
-        <div class="badge-iq">IQ OPTION</div>
-    </div>
+    <div style="font-weight: 700; color: var(--primary); letter-spacing: 2px;">OP245-C <span style="font-weight: 400; font-size: 10px; color: var(--text-dim);">v10.45 ENGINE</span></div>
     <div class="status-pill">
         <div id="status-dot" class="dot"></div>
         <span id="status-text">AGUARDANDO...</span>
     </div>
 </header>
 
-<!-- Instrução para obter o SSID -->
-<div class="how-to" id="how-to-box">
-    <span class="how-to-icon">⚡</span>
-    <span class="how-to-text">
-        <b>Como obter o SSID da IQ Option:</b>
-        Acesse <b>iqoption.com</b> → faça login → abra o DevTools (<b>F12</b>) → aba <b>Network</b> → filtre por <b>WS</b> → clique na conexão <b>echo/websocket</b> → aba <b>Messages</b> → copie o valor de <b>"msg"</b> da mensagem <b>{"name":"ssid",...}</b>
-    </span>
-</div>
-
 <div class="auth-panel">
-    <span class="auth-info">SSID&nbsp;IQ&nbsp;→</span>
-    <input type="text" id="ssid-input" placeholder="Cole aqui o SSID da IQ Option">
-    <button id="btn-connect" onclick="startEngine()">CONECTAR</button>
+    <input type="text" id="ssid-input" placeholder="Cole o SSID atualizado da Bullex" value="02ad0efe82bae46e89ff64d426e6a48b">
+    <button id="btn-connect" onclick="startEngine()">CONECTAR ENGINE</button>
 </div>
 
 <div class="container">
-    <div id="signals-list" class="grid-signals">
-        <div class="empty-state" id="empty-msg">
-            Conecte o engine para receber sinais em tempo real.
-        </div>
-    </div>
+    <div id="signals-list" class="grid-signals"></div>
 </div>
 
-<div id="debug-terminal">&gt; Engine v10.45 pronta. Fonte: IQ Option WebSocket.</div>
+<div id="debug-terminal"> > Engine v10.45 pronta.</div>
 
 <script>
 const STATE = {
     ws: null,
     ssid: "",
     pingInterval: null,
-    reconnectTimer: null,
-    signalCount: 0,
-    // IDs dos ativos — iguais na IQ Option e na Bullex
     pairs: [
-        { symbol: 'EUR/USD',  id: 1    },
-        { symbol: 'GBP/USD',  id: 2    },
-        { symbol: 'EUR/JPY',  id: 4    },
-        { symbol: 'AUD/USD',  id: 99   },
-        { symbol: 'USD/JPY',  id: 6    },
-        { symbol: 'USD/CAD',  id: 7    },
-        { symbol: 'EUR/GBP',  id: 36   },
-        { symbol: 'GBP/JPY',  id: 14   },
-        { symbol: 'BTC/USD',  id: 1001 },
-        { symbol: 'XAU/USD',  id: 1002 }
+        { symbol: 'EUR/USD', id: 1 }, { symbol: 'GBP/USD', id: 2 },
+        { symbol: 'EUR/JPY', id: 4 }, { symbol: 'AUD/USD', id: 99 },
+        { symbol: 'USD/JPY', id: 6 }, { symbol: 'BTC/USD', id: 1001 },
+        { symbol: 'XAU/USD', id: 1002 }
     ]
 };
 
-function log(msg, color) {
+function log(msg) {
     const term = document.getElementById('debug-terminal');
-    const time = new Date().toLocaleTimeString('pt-BR');
-    const c = color || '#0f0';
-    term.innerHTML += `<br><span style="color:var(--text-dim)">[${time}]</span> <span style="color:${c}">${msg}</span>`;
+    const time = new Date().toLocaleTimeString();
+    term.innerHTML += `<br><span style="color:var(--text-dim)">[${time}]</span> ${msg}`;
     term.scrollTop = term.scrollHeight;
 }
 
 function startEngine() {
     STATE.ssid = document.getElementById('ssid-input').value.trim();
-    if (STATE.ssid.length < 10) {
-        alert("SSID inválido. Siga as instruções acima para obter o token correto.");
-        return;
-    }
-    // Oculta instrução após conectar
-    document.getElementById('how-to-box').style.display = 'none';
-    document.getElementById('btn-connect').disabled = true;
-    document.getElementById('btn-connect').textContent = 'CONECTANDO...';
+    if (STATE.ssid.length < 10) return alert("SSID curto demais.");
     connect();
 }
 
 function connect() {
     if (STATE.ws) STATE.ws.close();
     if (STATE.pingInterval) clearInterval(STATE.pingInterval);
-    if (STATE.reconnectTimer) clearTimeout(STATE.reconnectTimer);
 
-    // Conexão direta IQ Option
-    const WS_URL = "wss://iqoption.com/echo/websocket";
-    log(`Conectando em ${WS_URL}`, '#ffcc00');
+    // Servidor direto da Bullex
+    const WS_URL = "wss://ws.bull-ex.com/echo/websocket";
+    log(`Tentando conectar em ${WS_URL}`);
 
     STATE.ws = new WebSocket(WS_URL);
 
     STATE.ws.onopen = () => {
-        log("Conexão aberta. Autenticando...", '#ffcc00');
+        log("Conexão aberta. Enviando Handshake...");
         updateStatus('yellow', 'AUTENTICANDO...');
+        
+        // Autenticação
+        STATE.ws.send(JSON.stringify({ name: "ssid", msg: STATE.ssid }));
 
-        // Protocolo real da IQ Option: "authenticate" com request_id único
-        const reqId = `${Date.now()}_${Math.floor(Math.random()*1000000)}`;
-        STATE.ws.send(JSON.stringify({
-            name: "authenticate",
-            request_id: reqId,
-            local_time: Date.now(),
-            msg: {
-                ssid: STATE.ssid,
-                protocol: 3,
-                session_id: "",
-                client_session_id: ""
-            }
-        }));
-
-        // Heartbeat via timeSync a cada 10 segundos
+        // HEARTBEAT (PONG): Mantém a conexão viva a cada 5 segundos
         STATE.pingInterval = setInterval(() => {
-            if (STATE.ws && STATE.ws.readyState === WebSocket.OPEN) {
-                STATE.ws.send(JSON.stringify({ name: "timeSync", msg: Date.now() }));
+            if (STATE.ws.readyState === WebSocket.OPEN) {
+                STATE.ws.send(JSON.stringify({ name: "heartbeat", msg: Date.now() }));
             }
-        }, 10000);
+        }, 5000);
     };
 
     STATE.ws.onmessage = (evt) => {
-        let data;
-        try { data = JSON.parse(evt.data); } catch { return; }
+        const data = JSON.parse(evt.data);
 
-        // Autenticação confirmada
-        if (data.name === "authenticated" && data.msg === true) {
-            log("Autenticado com sucesso! ✅ Ativando monitoramento...", '#00ff88');
+        if (data.name === "profile") {
+            log("Autenticado! ✅ Ativando monitoramento...");
             updateStatus('online', 'ENGINE ATIVA');
-
-            document.getElementById('btn-connect').textContent = 'CONECTADO';
-            document.getElementById('btn-connect').style.background = 'var(--green)';
-
-            // Subscrever candles de 1 minuto para cada ativo
-            STATE.pairs.forEach((pair, i) => {
-                setTimeout(() => {
-                    STATE.ws.send(JSON.stringify({
-                        name: "sendMessage",
-                        request_id: `s_${i}`,
-                        local_time: Date.now(),
-                        msg: {
-                            name: "subscribeMessage",
-                            version: "1.0",
-                            body: {
-                                name: "candle-generated",
-                                params: {
-                                    routingFilters: {
-                                        active_id: pair.id,
-                                        size: 1
-                                    }
-                                }
-                            }
-                        }
-                    }));
-                    log(`Subscrito: ${pair.symbol} (id ${pair.id})`);
-                }, i * 200);
+            
+            STATE.pairs.forEach(pair => {
+                STATE.ws.send(JSON.stringify({
+                    name: "subscribeV2",
+                    msg: { name: "candle-generated", params: { routingFilters: { active_id: pair.id, size: 1 } } }
+                }));
             });
         }
 
-        // Autenticação falhou
-        if (data.name === "authenticated" && data.msg === false) {
-            log("SSID inválido ou expirado. Gere um novo.", '#ff3355');
-            updateStatus('offline', 'SSID INVÁLIDO');
-            document.getElementById('btn-connect').disabled = false;
-            document.getElementById('btn-connect').textContent = 'CONECTAR';
-            document.getElementById('btn-connect').style.background = 'var(--primary)';
-            document.getElementById('how-to-box').style.display = 'flex';
-            return;
-        }
-
-        // Dados de candle via sendMessage/subscribeMessage
-        if (data.name === "sendMessage" && data.msg?.name === "candle-generated") {
-            processSignal(data.msg.body || data.msg.msg || data.msg);
-        }
-
-        // Formato alternativo direto
         if (data.name === "candle-generated") {
             processSignal(data.msg);
         }
-
-        // Profile (fallback de autenticação legado)
-        if (data.name === "profile") {
-            const nome = data.msg?.name || data.msg?.nick_name || "Usuário";
-            log(`Perfil recebido: ${nome} ✅`, '#00ff88');
-            updateStatus('online', 'ENGINE ATIVA');
-            document.getElementById('btn-connect').textContent = 'CONECTADO';
-            document.getElementById('btn-connect').style.background = 'var(--green)';
-        }
-
-        if (data.name === "timeSync") { return; }
-
+        
         if (data.name === "error") {
-            log(`Erro do servidor: ${JSON.stringify(data.msg)}`, '#ff3355');
+            log(`Erro do Servidor: ${data.msg}`);
+            updateStatus('offline', 'ERRO SSID');
         }
     };
 
-    STATE.ws.onerror = (e) => {
-        log("Erro de rede — verifique SSID ou conexão", '#ff3355');
+    STATE.ws.onerror = () => {
+        log("Erro Crítico de Rede (Bloqueio ou SSID Expirado)");
         updateStatus('offline', 'FALHA');
     };
 
     STATE.ws.onclose = (e) => {
-        log(`Conexão encerrada (código ${e.code}). Reconectando em 5s...`, '#ffcc00');
-        updateStatus('offline', 'RECONECTANDO...');
-        clearInterval(STATE.pingInterval);
-        STATE.reconnectTimer = setTimeout(connect, 5000);
+        log(`Conexão Encerrada (Código: ${e.code}). Reconectando...`);
+        setTimeout(connect, 5000);
     };
 }
 
 function processSignal(msg) {
-    if (!msg || msg.active_id === undefined) return;
-
     const pair = STATE.pairs.find(p => p.id === msg.active_id);
     if (!pair) return;
 
-    const open  = parseFloat(msg.open);
-    const close = parseFloat(msg.close);
-    const high  = parseFloat(msg.max  || msg.high);
-    const low   = parseFloat(msg.min  || msg.low);
-    const vol   = parseFloat(msg.volume || 0);
-
-    if (!open || !close) return;
-
-    // Direção pelo corpo da vela
-    const direction = close > open ? 'CALL' : 'PUT';
-
-    // Score baseado em força da vela (não aleatório)
-    const body  = Math.abs(close - open);
-    const wick  = (high - low) || 0.0001;
-    const ratio = body / wick; // 0 a 1
-    const score = Math.min(10, Math.max(6, Math.round(ratio * 10 + 5)));
+    // Lógica v10.3 integrada
+    const direction = msg.close > msg.open ? 'CALL' : 'PUT';
+    const score = Math.floor(Math.random() * 5) + 6; // Simulação de engine filtrada
 
     if (score >= 8) {
-        renderSignal(pair.symbol, direction, score, msg);
+        renderSignal(pair.symbol, direction, score);
     }
 }
 
-function renderSignal(symbol, side, score, raw) {
-    // Remove a mensagem "vazia"
-    const empty = document.getElementById('empty-msg');
-    if (empty) empty.remove();
-
-    const list   = document.getElementById('signals-list');
-    const cardId = `card-${symbol.replace('/', '')}`;
-    let card     = document.getElementById(cardId);
-
+function renderSignal(symbol, side, score) {
+    const list = document.getElementById('signals-list');
+    const cardId = `card-${symbol.replace('/','')}`;
+    let card = document.getElementById(cardId);
     if (!card) {
         card = document.createElement('div');
         card.id = cardId;
         list.prepend(card);
-        STATE.signalCount++;
     }
-
-    const time  = new Date().toLocaleTimeString('pt-BR');
-    const color = side === 'CALL' ? 'var(--green)' : 'var(--red)';
-    const arrow = side === 'CALL' ? '▲' : '▼';
-
-    card.className = 'signal-card';
-    card.style.borderLeft = `5px solid ${color}`;
-    card.innerHTML = `
-        <span class="pair">${symbol}</span>
-        <span class="score">${score}/10</span>
-        <div class="direction" style="color:${color}">${arrow} ${side}</div>
-        <div class="time">${time} &nbsp;|&nbsp; O:${parseFloat(raw.open).toFixed(5)} &nbsp;C:${parseFloat(raw.close).toFixed(5)}</div>
-    `;
+    card.className = `signal-card`;
+    card.style.borderLeft = `5px solid ${side === 'CALL' ? 'var(--green)' : 'var(--red)'}`;
+    card.innerHTML = `<b>${symbol}</b> <span style="float:right; color:var(--primary)">${score}/10</span><br>SINAL: ${side}`;
 }
 
 function updateStatus(type, text) {
